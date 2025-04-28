@@ -3,7 +3,7 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const pdfParse = require('pdf-parse'); // ✅ For analyzing PDFs
+const pdfParse = require('pdf-parse');
 
 const app = express();
 const PORT = 3000;
@@ -18,7 +18,7 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
 
-// Multer storage setup (saving to disk)
+// Multer storage setup
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadDir);
@@ -42,19 +42,25 @@ app.get('/api/status', (req, res) => {
   res.json({ message: 'Backend is working', timestamp: new Date().toISOString() });
 });
 
-// Reclassification form
+// Reclassification form (updated to capture year)
 app.post('/api/submit', (req, res) => {
-  const { residencyType, quarter } = req.body;
+  const { residencyType, quarter, year } = req.body;
   console.log('Received submission:');
   console.log('Residency Type:', residencyType);
   console.log('Quarter:', quarter);
+  console.log('Year:', year);
 
   let eligibility = false;
 
+  if (!residencyType || !quarter || !year) {
+    return res.status(400).json({ message: 'Missing fields in submission.' });
+  }
+
+  // Cleaner eligibility logic
   if (residencyType === 'under19') {
-    eligibility = /20(2[4-9]|[3-9][0-9])/.test(quarter);
+    eligibility = Number(year) >= 2024;
   } else if (residencyType === 'independent') {
-    eligibility = quarter.toLowerCase().includes('fall') || quarter.toLowerCase().includes('winter');
+    eligibility = ['fall', 'winter'].includes(quarter.toLowerCase());
   } else if (residencyType === 'military') {
     eligibility = true;
   }
@@ -65,7 +71,7 @@ app.post('/api/submit', (req, res) => {
   });
 });
 
-// Upload PDF
+// Upload a PDF
 app.post('/api/upload', upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'No file uploaded.' });
@@ -96,11 +102,20 @@ app.post('/api/analyze', async (req, res) => {
       data.text.toLowerCase().includes(keyword.toLowerCase())
     );
 
+    // Extract a MM/DD/YYYY style date
+    let extractedDate = null;
+    const dateMatch = data.text.match(/(\d{2}\/\d{2}\/\d{4})/);
+
+    if (dateMatch) {
+      extractedDate = dateMatch[1]; // Example: 11/15/2025
+    }
+
     res.json({
       message: 'Document analyzed successfully!',
       pageCount: data.numpages,
       foundKeywords,
-      textSnippet: data.text.slice(0, 300)
+      textSnippet: data.text.slice(0, 300),
+      extractedDate
     });
   } catch (err) {
     console.error('PDF analysis error:', err);

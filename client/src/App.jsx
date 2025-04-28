@@ -1,71 +1,60 @@
 import { useEffect, useState } from 'react';
+import Quiz from './Quiz';
+import Checklist from './Checklist';
 import './App.css';
 
-// Checklist component
-const Checklist = ({ residencyType }) => {
-  if (!residencyType) return null;
+const keywordMappings = {
+  'CA Driver\'s License or ID': ['driver license', 'driver\'s license', 'id card'],
+  'Lease or Rental Agreement': ['lease agreement', 'rental agreement', 'lease'],
+  'Voter Registration': ['voter registration', 'political', 'political party', 'party', 'preference'],
+  'Car Registration': ['vehicle registration', 'car registration'],
+  'State Tax Returns': ['state tax return'],
+  'Federal Tax Returns': ['federal tax return'],
+  'W2 or Pay Stubs': ['w2', 'pay stub'],
+  'Utility Bill': ['utility bill', 'electric bill', 'gas bill'],
+  'Bank Account Statement (CA Address)': ['bank statement', 'bank', 'chase'],
+  'Parent\'s CA Driver\'s License': ['parent driver license', 'parent id card'],
+  'Parent\'s Lease or Rental Agreement': ['parent lease', 'parent rental'],
+  'Parent\'s State Tax Returns': ['parent state tax return'],
+  'Parent\'s Utility Bills': ['parent utility bill'],
+  'High School Transcripts showing CA address': ['high school transcript'],
+  'Active Duty Military Orders': ['military orders', 'active duty'],
+  'Military ID': ['military id'],
+  'Proof of CA Stationing': ['ca stationing proof'],
+  'Military Spouse or Dependent Documentation': ['military dependent'],
+  'Utility Bill at CA address': ['utility bill']
+};
 
-  let items = [];
+// Helper to get RDD for given quarter/year
+const getRDDDate = (quarter, year) => {
+  if (!quarter || !year) return null;
 
-  if (residencyType === 'under19') {
-    items = [
-      '✔️ Parent/guardian moved to California',
-      '✔️ Supporting documents submitted',
-      '❌ Parent is financially responsible',
-    ];
-  } else if (residencyType === 'independent') {
-    items = [
-      '✔️ Lived in CA for 1 year',
-      '❌ Filed taxes as independent',
-      '❌ Financial independence proven',
-    ];
-  } else if (residencyType === 'military') {
-    items = [
-      '✔️ Active duty orders submitted',
-      '✔️ Proof of CA stationing',
-      '❌ Military spouse/child form submitted',
-    ];
+  const rddYear = Number(year) - 1; // 🛠 SUBTRACT 1 YEAR
+
+  switch (quarter) {
+    case 'Fall': return new Date(`${rddYear}-09-20`);  // ✅ September 20
+    case 'Winter': return new Date(`${rddYear}-01-05`); // ✅ January 5
+    case 'Spring': return new Date(`${rddYear}-04-01`); // ✅ April 1
+    case 'Summer': return new Date(`${rddYear}-07-01`); // ✅ July 1
+    default: return null;
   }
-
-  const completed = items.filter(item => item.startsWith('✔️')).length;
-  const percent = Math.round((completed / items.length) * 100);
-
-  return (
-    <div>
-      <h3>Checklist for {residencyType.charAt(0).toUpperCase() + residencyType.slice(1)} Student</h3>
-      <ul>
-        {items.map((item, index) => (
-          <li key={index}>{item}</li>
-        ))}
-      </ul>
-      <p style={{ fontWeight: 'bold' }}>✅ Progress: {percent}% complete</p>
-      <div style={{
-        height: '10px',
-        width: '100%',
-        backgroundColor: '#eee',
-        marginTop: '5px',
-        borderRadius: '5px'
-      }}>
-        <div style={{
-          width: `${percent}%`,
-          height: '100%',
-          backgroundColor: percent === 100 ? 'green' : '#007bff',
-          borderRadius: '5px'
-        }} />
-      </div>
-    </div>
-  );
 };
 
 function App() {
   const [status, setStatus] = useState(null);
   const [residencyType, setResidencyType] = useState('');
   const [quarter, setQuarter] = useState('');
+  const [year, setYear] = useState('');
   const [eligibility, setEligibility] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const [uploadMessage, setUploadMessage] = useState('');
   const [analysisInfo, setAnalysisInfo] = useState(null);
+  const [completedDocuments, setCompletedDocuments] = useState([]);
+  const [checklistComplete, setChecklistComplete] = useState(false);
+
+  const [quizCompleted, setQuizCompleted] = useState(false);
+  const [rddValidationMessage, setRDDValidationMessage] = useState('');
 
   useEffect(() => {
     fetch('http://localhost:3000/api/status')
@@ -79,7 +68,7 @@ function App() {
     setLoading(true);
     setEligibility(null);
 
-    const formData = { residencyType, quarter };
+    const formData = { residencyType, quarter, year };
 
     try {
       const response = await fetch('http://localhost:3000/api/submit', {
@@ -103,6 +92,7 @@ function App() {
 
     setUploadMessage('');
     setAnalysisInfo(null);
+    setRDDValidationMessage('');
 
     const formData = new FormData();
     formData.append('file', file);
@@ -114,10 +104,8 @@ function App() {
       });
 
       const uploadData = await uploadRes.json();
-
       setUploadMessage(`✅ ${uploadData.filename} uploaded successfully (${Math.round(uploadData.size / 1024)} KB)`);
 
-      // Analyze after upload
       const analyzeRes = await fetch('http://localhost:3000/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -127,16 +115,65 @@ function App() {
       const analysisData = await analyzeRes.json();
       setAnalysisInfo(analysisData);
 
+      matchUploadedDocument(analysisData.textSnippet, uploadData.filename);
+
+      validateRDDFromExtractedDate(analysisData.extractedDate);
+
     } catch (err) {
       console.error("Upload or analysis error:", err);
       setUploadMessage('❌ Failed to upload or analyze file.');
     }
   };
 
+  const matchUploadedDocument = (textSnippet, filename) => {
+    const lowerText = textSnippet.toLowerCase() + ' ' + filename.toLowerCase();
+    const newMatches = [];
+
+    for (const [docName, keywords] of Object.entries(keywordMappings)) {
+      for (const keyword of keywords) {
+        if (lowerText.includes(keyword)) {
+          newMatches.push(docName);
+          break;
+        }
+      }
+    }
+
+    setCompletedDocuments(prev => [...new Set([...prev, ...newMatches])]);
+  };
+
+  const validateRDDFromExtractedDate = (extractedDateStr) => {
+    const rdd = getRDDDate(quarter, year);
+
+    if (!rdd) {
+      setRDDValidationMessage('⚠️ Unable to determine RDD.');
+      return;
+    }
+
+    if (!extractedDateStr) {
+      setRDDValidationMessage('⚠️ No date found in document.');
+      return;
+    }
+
+    const parts = extractedDateStr.split('/');
+    const docDate = new Date(parts[2], parts[0] - 1, parts[1]); // MM/DD/YYYY -> Date(year, monthIndex, day)
+
+    if (docDate <= rdd) {
+      setRDDValidationMessage('✅ Document appears issued before RDD.');
+    } else {
+      setRDDValidationMessage('⚠️ Document may be issued AFTER RDD! Risky!');
+    }
+  };
+
+  useEffect(() => {
+    if (checklistComplete) {
+      setEligibility(true);
+    }
+  }, [checklistComplete]);
+
   return (
     <div className="App">
       <h1>Residency Navigator</h1>
-      <p>Welcome to the 10% prototype!</p>
+      <p>Welcome to the prototype!</p>
 
       {status ? (
         <div>
@@ -149,85 +186,87 @@ function App() {
 
       <hr />
 
-      <form onSubmit={handleSubmit}>
-        <label>
-          Residency Type:
-          <select value={residencyType} onChange={(e) => setResidencyType(e.target.value)} required>
-            <option value="">-- Select --</option>
-            <option value="under19">Under 19</option>
-            <option value="independent">Independent</option>
-            <option value="military">Military</option>
-          </select>
-        </label>
+      {!quizCompleted ? (
+        <Quiz
+          onComplete={(determinedType) => {
+            setResidencyType(determinedType);
+            setQuizCompleted(true);
+          }}
+        />
+      ) : (
+        <>
+          <form onSubmit={handleSubmit}>
+            <label>
+              Select Quarter:
+              <select value={quarter} onChange={(e) => setQuarter(e.target.value)} required>
+                <option value="">-- Select Quarter --</option>
+                <option value="Fall">Fall</option>
+                <option value="Winter">Winter</option>
+                <option value="Spring">Spring</option>
+                <option value="Summer">Summer</option>
+              </select>
+            </label>
 
-        <br /><br />
+            <br /><br />
 
-        <label>
-          Reclassification Quarter:
-          <input
-            type="text"
-            placeholder="e.g., Fall 2025"
-            value={quarter}
-            onChange={(e) => setQuarter(e.target.value)}
-            required
+            <label>
+              Select Year:
+              <select value={year} onChange={(e) => setYear(e.target.value)} required>
+                <option value="">-- Select Year --</option>
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+                <option value="2026">2026</option>
+              </select>
+            </label>
+
+            <br /><br />
+            <button type="submit">Submit</button>
+          </form>
+
+          <Checklist
+            residencyType={residencyType}
+            completedItems={completedDocuments}
+            onChecklistComplete={setChecklistComplete}
           />
-        </label>
 
-        <br /><br />
-        <button type="submit">Submit</button>
-      </form>
+          <hr />
+          <h3>Upload Supporting Document</h3>
+          <input type="file" onChange={handleUpload} />
+          {uploadMessage && (
+            <p style={{
+              marginTop: '10px',
+              fontWeight: 'bold',
+              color: uploadMessage.startsWith('✅') ? 'green' : 'red'
+            }}>
+              {uploadMessage}
+            </p>
+          )}
 
-      <Checklist residencyType={residencyType} />
+          {analysisInfo && (
+            <div style={{ marginTop: '1rem' }}>
+              <h4>📄 Document Analysis</h4>
+              <p><strong>Pages:</strong> {analysisInfo.pageCount}</p>
+              <p><strong>Keywords found:</strong> {analysisInfo.foundKeywords.join(', ') || 'None'}</p>
+              <p><strong>Preview:</strong></p>
+              <div style={{
+                backgroundColor: '#f7f7f7',
+                padding: '10px',
+                borderRadius: '5px',
+                border: '1px solid #ddd',
+                maxHeight: '200px',
+                overflowY: 'auto'
+              }}>
+                <pre>{analysisInfo.textSnippet}</pre>
+              </div>
+            </div>
+          )}
 
-      {residencyType && (
-        <div style={{ marginTop: '2rem' }}>
-          <h3>Eligibility Result</h3>
-          {loading ? (
-            <p style={{ color: 'gray' }}>⏳ Checking eligibility...</p>
-          ) : eligibility !== null ? (
-            eligibility ? (
-              <p style={{ color: 'green', fontWeight: 'bold' }}>
-                ✅ You may be eligible for residency reclassification!
-              </p>
-            ) : (
-              <p style={{ color: 'red', fontWeight: 'bold' }}>
-                ❌ You may not be eligible — please review the checklist and try again.
-              </p>
-            )
-          ) : null}
-        </div>
-      )}
-
-      <hr />
-      <h3>Upload Supporting Document</h3>
-      <input type="file" onChange={handleUpload} />
-      {uploadMessage && (
-        <p style={{
-          marginTop: '10px',
-          fontWeight: 'bold',
-          color: uploadMessage.startsWith('✅') ? 'green' : 'red'
-        }}>
-          {uploadMessage}
-        </p>
-      )}
-
-      {analysisInfo && (
-        <div style={{ marginTop: '1rem' }}>
-          <h4>📄 Document Analysis</h4>
-          <p><strong>Pages:</strong> {analysisInfo.pageCount}</p>
-          <p><strong>Keywords found:</strong> {analysisInfo.foundKeywords.join(', ') || 'None'}</p>
-          <p><strong>Preview:</strong></p>
-          <div style={{
-            backgroundColor: '#f7f7f7',
-            padding: '10px',
-            borderRadius: '5px',
-            border: '1px solid #ddd',
-            maxHeight: '200px',
-            overflowY: 'auto'
-          }}>
-            <pre>{analysisInfo.textSnippet}</pre>
-          </div>
-        </div>
+          {rddValidationMessage && (
+            <div style={{ marginTop: '1rem', fontWeight: 'bold', color: rddValidationMessage.includes('⚠️') ? 'red' : 'green' }}>
+              {rddValidationMessage}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
