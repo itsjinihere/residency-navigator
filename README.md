@@ -1,52 +1,111 @@
-# Residency Navigator 
+# Residency Navigator
 
-Residency Navigator is a web-based assistant designed to help Cal Poly students navigate the complex process of reclassifying as California residents for tuition purposes. Built with a full-stack MERN architecture, this application provides dynamic, personalized tools to guide students step-by-step through eligibility checks, document uploads, and progress tracking.
+Residency Navigator is a web-based assistant designed to help Cal Poly students navigate the complex process of reclassifying as California residents for tuition purposes.
+
+Built with a full-stack architecture (React + Node.js + Express), this application provides **dynamic, personalized guidance** through eligibility checks, document uploads, RDD validation, and progress tracking.
+
+---
 
 ## Why This Project?
+Every year, many students miss out on in-state tuition because the residency reclassification process is confusing and intimidating. Residency Navigator brings clarity by acting as:
+- A **quiz** to determine your residency category
+- A **checklist builder** tailored to your category
+- A **progress tracker** based on document uploads
+- A **smart analyzer** for your documents (extracts keywords and dates)
+- An **eligibility estimator** based on CSU rules
 
-Every year, many students at Cal Poly miss out on potential in-state tuition because the reclassification process is opaque and intimidating. Residency Navigator brings clarity by acting as a **smart checklist, eligibility predictor, and document assistant** — all in one place.
+---
 
 ## Features
+### Residency Category Quiz
+- Interactive 10-question quiz to classify students as:
+  - Independent
+  - Dependent under 19
+  - Military
+  - Above 19 Dependent on CA parents (new!)
+  - Above 19 Dependent on Non-CA parents (new! → shows ineligibility + tips)
 
--  **Live Progress Tracker**  
-  See a real-time progress bar and checklist based on your residency type.
+### Dynamic Document Checklist
+- Checklist changes based on your quiz results.
+- Customizes requirements for List A and List B documents.
+- Updates live as you upload files.
 
--  **Eligibility Estimator**  
-  Backend logic determines likelihood of approval based on user inputs (e.g., term, status).
+### Live Progress Tracker
+- Real-time progress bar showing how close you are to checklist completion.
 
--  **PDF Upload + Analysis**  
-  Users can upload supporting documents and get back extracted metadata, snippets, and keyword presence — laying the foundation for intelligent feedback.
+### PDF Upload + Analysis
+- Upload any supporting document (ID, lease, tax return, etc.)
+- The backend extracts:
+  - Number of pages
+  - Snippets of text
+  - Detected keywords
+  - Detected dates (for RDD validation)
 
--  **Checklist Customization**  
-  Automatically adapts to “Under 19,” “Independent,” or “Military” residency types.
+### Residency Determination Date (RDD) Validation
+- Automatically checks if a document is **older than the required RDD** (e.g., CA ID must be issued before RDD).
+- Alerts if a document might be issued **after** RDD, marking it as risky.
 
--  **Frontend–Backend Integration**  
-  Frontend and backend communicate via REST API with live status checks and real-time form feedback.
+### Intelligent Eligibility Feedback
+- Dynamically calculates your eligibility status based on:
+  - Quiz answers
+  - Document checklist progress
+  - Uploaded document dates
 
--  **10% Prototype Complete**  
-  Fully deployed local prototype with checklist logic, backend eligibility routes, file handling, and progress feedback.
+### Personalized Suggestions (NEW)
+- If you're not currently eligible (e.g., dependent on non-CA parents), the system suggests realistic ways to become eligible (e.g., gain financial independence, parents move to CA, marriage, etc.).
+
+---
 
 ## Tech Stack
-
 - **Frontend:** React + Vite
-- **Backend:** Node.js, Express
-- **File Handling:** Multer
-- **PDF Parsing:** Extracts metadata and content using pdf-parse
+- **Backend:** Node.js + Express
+- **File Uploads:** Multer
+- **PDF Parsing:** pdf-parse
 - **Version Control:** Git + GitHub
+
+---
 
 ## Getting Started
 
+### 1. Clone the repository
 ```bash
-# Clone the repo
 git clone https://github.com/itsjinihere/residency-navigator
 cd residency-navigator
+```
 
-# Start backend
+### 2. Start the Backend
+```bash
 cd server
 npm install
 npm run dev
+```
 
-# Start frontend
+### 3. Start the Frontend
+```bash
 cd ../client
 npm install
 npm run dev
+```
+
+Both the server and client should now be running locally!
+
+---
+
+## Current Progress
+- 10% prototype completed (Week 4)
+- 20% prototype completed (Week 5)
+- Residency quiz and dynamic checklist
+- RDD validation
+- Smart file upload and keyword detection
+- Live eligibility updates
+
+---
+
+## Future Plans
+- Smarter text extraction for RDD validation (not just from filenames)
+- Allow users to edit or delete uploaded documents
+- Track multiple documents per checklist item
+- Admin dashboard to review user submissions (future phase)
+
+---
+
