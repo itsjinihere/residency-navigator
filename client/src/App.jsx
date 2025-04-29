@@ -25,17 +25,16 @@ const keywordMappings = {
   'Utility Bill at CA address': ['utility bill']
 };
 
-// Helper to get RDD for given quarter/year
+// Helper to get RDD date
 const getRDDDate = (quarter, year) => {
   if (!quarter || !year) return null;
-
-  const rddYear = Number(year) - 1; // 🛠 SUBTRACT 1 YEAR
+  const rddYear = Number(year) - 1;
 
   switch (quarter) {
-    case 'Fall': return new Date(`${rddYear}-09-20`);  // ✅ September 20
-    case 'Winter': return new Date(`${rddYear}-01-05`); // ✅ January 5
-    case 'Spring': return new Date(`${rddYear}-04-01`); // ✅ April 1
-    case 'Summer': return new Date(`${rddYear}-07-01`); // ✅ July 1
+    case 'Fall': return new Date(`${rddYear}-09-20`);
+    case 'Winter': return new Date(`${rddYear}-01-05`);
+    case 'Spring': return new Date(`${rddYear}-04-01`);
+    case 'Summer': return new Date(`${rddYear}-07-01`);
     default: return null;
   }
 };
@@ -116,7 +115,6 @@ function App() {
       setAnalysisInfo(analysisData);
 
       matchUploadedDocument(analysisData.textSnippet, uploadData.filename);
-
       validateRDDFromExtractedDate(analysisData.extractedDate);
 
     } catch (err) {
@@ -155,7 +153,7 @@ function App() {
     }
 
     const parts = extractedDateStr.split('/');
-    const docDate = new Date(parts[2], parts[0] - 1, parts[1]); // MM/DD/YYYY -> Date(year, monthIndex, day)
+    const docDate = new Date(parts[2], parts[0] - 1, parts[1]);
 
     if (docDate <= rdd) {
       setRDDValidationMessage('✅ Document appears issued before RDD.');
@@ -169,6 +167,85 @@ function App() {
       setEligibility(true);
     }
   }, [checklistComplete]);
+
+  // Helper to render checklist/upload form
+  function renderChecklistAndUpload() {
+    return (
+      <>
+        <form onSubmit={handleSubmit}>
+          <label>
+            Select Quarter:
+            <select value={quarter} onChange={(e) => setQuarter(e.target.value)} required>
+              <option value="">-- Select Quarter --</option>
+              <option value="Fall">Fall</option>
+              <option value="Winter">Winter</option>
+              <option value="Spring">Spring</option>
+              <option value="Summer">Summer</option>
+            </select>
+          </label>
+
+          <br /><br />
+
+          <label>
+            Select Year:
+            <select value={year} onChange={(e) => setYear(e.target.value)} required>
+              <option value="">-- Select Year --</option>
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+            </select>
+          </label>
+
+          <br /><br />
+          <button type="submit">Submit</button>
+        </form>
+
+        <Checklist
+          residencyType={residencyType}
+          completedItems={completedDocuments}
+          onChecklistComplete={setChecklistComplete}
+        />
+
+        <hr />
+        <h3>Upload Supporting Document</h3>
+        <input type="file" onChange={handleUpload} />
+        {uploadMessage && (
+          <p style={{
+            marginTop: '10px',
+            fontWeight: 'bold',
+            color: uploadMessage.startsWith('✅') ? 'green' : 'red'
+          }}>
+            {uploadMessage}
+          </p>
+        )}
+
+        {analysisInfo && (
+          <div style={{ marginTop: '1rem' }}>
+            <h4>📄 Document Analysis</h4>
+            <p><strong>Pages:</strong> {analysisInfo.pageCount}</p>
+            <p><strong>Keywords found:</strong> {analysisInfo.foundKeywords.join(', ') || 'None'}</p>
+            <p><strong>Preview:</strong></p>
+            <div style={{
+              backgroundColor: '#f7f7f7',
+              padding: '10px',
+              borderRadius: '5px',
+              border: '1px solid #ddd',
+              maxHeight: '200px',
+              overflowY: 'auto'
+            }}>
+              <pre>{analysisInfo.textSnippet}</pre>
+            </div>
+          </div>
+        )}
+
+        {rddValidationMessage && (
+          <div style={{ marginTop: '1rem', fontWeight: 'bold', color: rddValidationMessage.includes('⚠️') ? 'red' : 'green' }}>
+            {rddValidationMessage}
+          </div>
+        )}
+      </>
+    );
+  }
 
   return (
     <div className="App">
@@ -195,76 +272,26 @@ function App() {
         />
       ) : (
         <>
-          <form onSubmit={handleSubmit}>
-            <label>
-              Select Quarter:
-              <select value={quarter} onChange={(e) => setQuarter(e.target.value)} required>
-                <option value="">-- Select Quarter --</option>
-                <option value="Fall">Fall</option>
-                <option value="Winter">Winter</option>
-                <option value="Spring">Spring</option>
-                <option value="Summer">Summer</option>
-              </select>
-            </label>
-
-            <br /><br />
-
-            <label>
-              Select Year:
-              <select value={year} onChange={(e) => setYear(e.target.value)} required>
-                <option value="">-- Select Year --</option>
-                <option value="2024">2024</option>
-                <option value="2025">2025</option>
-                <option value="2026">2026</option>
-              </select>
-            </label>
-
-            <br /><br />
-            <button type="submit">Submit</button>
-          </form>
-
-          <Checklist
-            residencyType={residencyType}
-            completedItems={completedDocuments}
-            onChecklistComplete={setChecklistComplete}
-          />
-
-          <hr />
-          <h3>Upload Supporting Document</h3>
-          <input type="file" onChange={handleUpload} />
-          {uploadMessage && (
-            <p style={{
-              marginTop: '10px',
-              fontWeight: 'bold',
-              color: uploadMessage.startsWith('✅') ? 'green' : 'red'
-            }}>
-              {uploadMessage}
-            </p>
-          )}
-
-          {analysisInfo && (
-            <div style={{ marginTop: '1rem' }}>
-              <h4>📄 Document Analysis</h4>
-              <p><strong>Pages:</strong> {analysisInfo.pageCount}</p>
-              <p><strong>Keywords found:</strong> {analysisInfo.foundKeywords.join(', ') || 'None'}</p>
-              <p><strong>Preview:</strong></p>
-              <div style={{
-                backgroundColor: '#f7f7f7',
-                padding: '10px',
-                borderRadius: '5px',
-                border: '1px solid #ddd',
-                maxHeight: '200px',
-                overflowY: 'auto'
-              }}>
-                <pre>{analysisInfo.textSnippet}</pre>
-              </div>
+          {residencyType === 'above19dependent-nonca' ? (
+            <div style={{ marginTop: '2rem' }}>
+              <h2>❌ Based on your answers, you are currently NOT eligible for California residency.</h2>
+              <p>Because you are financially dependent on non-California parents, you are not considered a CA resident.</p>
+              <h4>➡️ Ways you may become eligible in the future:</h4>
+              <ul>
+                <li>Become financially independent (file taxes independently, self-supporting income)</li>
+                <li>Get married (may qualify you as independent)</li>
+                <li>Your parents move to California and establish residency</li>
+                <li>Live independently in California for 1+ year without being claimed on parents' taxes</li>
+              </ul>
             </div>
-          )}
-
-          {rddValidationMessage && (
-            <div style={{ marginTop: '1rem', fontWeight: 'bold', color: rddValidationMessage.includes('⚠️') ? 'red' : 'green' }}>
-              {rddValidationMessage}
+          ) : residencyType === 'above19dependent-ca' ? (
+            <div style={{ marginTop: '2rem' }}>
+              <h2>⚠️ Based on your answers, your eligibility depends on your parents' California residency.</h2>
+              <p>You are financially dependent but your parents are California residents. Please proceed to upload documents showing their CA status (tax returns, lease, ID, etc).</p>
+              {renderChecklistAndUpload()}
             </div>
+          ) : (
+            renderChecklistAndUpload()
           )}
         </>
       )}

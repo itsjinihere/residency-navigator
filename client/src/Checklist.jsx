@@ -1,3 +1,4 @@
+// src/Checklist.jsx
 import React, { useEffect } from 'react';
 
 const residencyRequirements = {
@@ -37,15 +38,40 @@ const residencyRequirements = {
       'Military Spouse or Dependent Documentation',
       'Utility Bill at CA address'
     ]
+  },
+  above19dependentca: {
+    listA: [
+      'Parent\'s CA Driver\'s License',
+      'Parent\'s Lease or Rental Agreement',
+      'Parent\'s Voter Registration',
+      'Parent\'s Car Registration'
+    ],
+    listB: [
+      'Parent\'s State Tax Returns',
+      'Parent\'s Utility Bills',
+      'Parent\'s Bank Statement (showing CA address)',
+      'High School or College Transcripts showing CA address'
+    ]
   }
 };
 
 const Checklist = ({ residencyType, completedItems, onChecklistComplete }) => {
-  if (!residencyType || !residencyRequirements[residencyType]) return null;
+  if (!residencyType) return null;
 
-  const { listA, listB } = residencyRequirements[residencyType];
+  const cleanedResidencyType = residencyType.replace(/-/g, '').toLowerCase(); // make it flexible
+  const requirements = residencyRequirements[cleanedResidencyType];
 
-  // Calculate checklist completion
+  if (!requirements) {
+    return (
+      <div>
+        <h3>No checklist available for your student type.</h3>
+        <p>Please proceed according to university instructions.</p>
+      </div>
+    );
+  }
+
+  const { listA, listB } = requirements;
+
   const completedListA = listA.filter(item => completedItems.includes(item));
   const completedListB = listB.filter(item => completedItems.includes(item));
 
@@ -59,7 +85,6 @@ const Checklist = ({ residencyType, completedItems, onChecklistComplete }) => {
     100
   );
 
-  // Inform App.jsx whether checklist is complete
   useEffect(() => {
     if (onChecklistComplete) {
       onChecklistComplete(checklistComplete);
@@ -74,7 +99,7 @@ const Checklist = ({ residencyType, completedItems, onChecklistComplete }) => {
 
   return (
     <div>
-      <h3>Checklist for {residencyType.charAt(0).toUpperCase() + residencyType.slice(1)} Student</h3>
+      <h3>Checklist for {residencyType.charAt(0).toUpperCase() + residencyType.slice(1).replace(/-/g, ' ')} Student</h3>
 
       <h4>✅ List A (must have at least 1)</h4>
       <ul>

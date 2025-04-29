@@ -1,6 +1,5 @@
 import { useState } from 'react';
 
-
 const questions = [
   { question: "Will you be 24 years or older by the start of the reclassification quarter?", field: "isOver24" },
   { question: "Are you married?", field: "isMarried" },
@@ -39,14 +38,18 @@ function Quiz({ onComplete }) {
       a.isOver24 ||
       a.isMarried ||
       a.hasDependents ||
-      a.isSelfSupporting && !a.claimedByParents ||
+      (a.isSelfSupporting && !a.claimedByParents) ||
       a.wasInFosterCare
     ) {
       status = "independent";
-    } else if (a.parentsInCA) {
-      status = "under19";
+    } else if (a.claimedByParents) {
+      if (a.parentsInCA) {
+        status = "above19dependent-ca";   // ✅ Dependent, parents in CA
+      } else {
+        status = "above19dependent-nonca"; // ❌ Dependent, parents NOT in CA
+      }
     } else {
-      status = "unknown";
+      status = "unknown"; // fallback
     }
 
     setFinished(true);
