@@ -55,6 +55,20 @@ function App() {
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [rddValidationMessage, setRDDValidationMessage] = useState('');
 
+  const [selectedRDDDate, setSelectedRDDDate] = useState('');
+  const [extractedDates, setExtractedDates] = useState([]);
+  const [isLeaseDoc, setIsLeaseDoc] = useState(false);
+  const [leaseStartDate, setLeaseStartDate] = useState('');
+  const [leaseEndDate, setLeaseEndDate] = useState('');
+  const [leaseValidationMessage, setLeaseValidationMessage] = useState('');
+
+  const [documentTypes, setDocumentTypes] = useState({
+    isLease: false,
+    isGeneralResidency: false
+  });
+  
+
+
   useEffect(() => {
     fetch('http://localhost:3000/api/status')
       .then((res) => res.json())
@@ -88,40 +102,58 @@ function App() {
   const handleUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
+  
     setUploadMessage('');
     setAnalysisInfo(null);
     setRDDValidationMessage('');
-
+    setLeaseValidationMessage('');
+    setExtractedDates([]);
+    setDocumentTypes({ isLease: false, isGeneralResidency: false });
+  
     const formData = new FormData();
     formData.append('file', file);
-
+  
     try {
       const uploadRes = await fetch('http://localhost:3000/api/upload', {
         method: 'POST',
         body: formData,
       });
-
+  
       const uploadData = await uploadRes.json();
       setUploadMessage(`✅ ${uploadData.filename} uploaded successfully (${Math.round(uploadData.size / 1024)} KB)`);
-
+  
       const analyzeRes = await fetch('http://localhost:3000/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: uploadData.path }),
       });
-
+  
       const analysisData = await analyzeRes.json();
       setAnalysisInfo(analysisData);
-
+  
+      setExtractedDates(analysisData.extractedDates || []);
+  
+      const text = analysisData.textSnippet.toLowerCase();
+      const filename = uploadData.filename.toLowerCase();
+  
+      const isLease = filename.includes("lease") || text.includes("lease");
+      const isGeneralResidency = ['id', 'driver', 'utility', 'bill'].some(term =>
+        filename.includes(term) || text.includes(term)
+      );
+  
+      setDocumentTypes({
+        isLease,
+        isGeneralResidency
+      });
+  
       matchUploadedDocument(analysisData.textSnippet, uploadData.filename);
-      validateRDDFromExtractedDate(analysisData.extractedDate);
-
+  
     } catch (err) {
       console.error("Upload or analysis error:", err);
       setUploadMessage('❌ Failed to upload or analyze file.');
     }
   };
+  
 
   const matchUploadedDocument = (textSnippet, filename) => {
     const lowerText = textSnippet.toLowerCase() + ' ' + filename.toLowerCase();
@@ -141,26 +173,38 @@ function App() {
 
   const validateRDDFromExtractedDate = (extractedDateStr) => {
     const rdd = getRDDDate(quarter, year);
-
+  
     if (!rdd) {
       setRDDValidationMessage('⚠️ Unable to determine RDD.');
       return;
     }
-
+  
+    const formattedRDD = new Date(
+      rdd.getFullYear(),
+      rdd.getMonth(),
+      rdd.getDate()
+    ).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    
+  
     if (!extractedDateStr) {
-      setRDDValidationMessage('⚠️ No date found in document.');
+      setRDDValidationMessage(`⚠️ No date found in document. Your RDD is ${formattedRDD}.`);
       return;
     }
-
+  
     const parts = extractedDateStr.split('/');
     const docDate = new Date(parts[2], parts[0] - 1, parts[1]);
-
+  
     if (docDate <= rdd) {
-      setRDDValidationMessage('✅ Document appears issued before RDD.');
+      setRDDValidationMessage(`✅ Document appears issued before your RDD (${formattedRDD}).`);
     } else {
-      setRDDValidationMessage('⚠️ Document may be issued AFTER RDD! Risky!');
+      setRDDValidationMessage(`⚠️ Document may be issued AFTER your RDD (${formattedRDD})! Risky!`);
     }
   };
+  
 
   useEffect(() => {
     if (checklistComplete) {
@@ -168,7 +212,34 @@ function App() {
     }
   }, [checklistComplete]);
 
-  // Helper to render checklist/upload form
+  const validateLeaseCoverage = () => {
+    const rdd = getRDDDate(quarter, year);
+    if (!rdd || !leaseStartDate || !leaseEndDate) {
+      setLeaseValidationMessage('');
+      return;
+    }
+  
+    const start = new Date(leaseStartDate);
+    const end = new Date(leaseEndDate);
+  
+    const formattedRDD = new Date(
+      rdd.getFullYear(),
+      rdd.getMonth(),
+      rdd.getDate()
+    ).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  
+    if (start <= rdd && end >= rdd) {
+      setLeaseValidationMessage(`✅ Your lease appears to cover your RDD (${formattedRDD}).`);
+    } else {
+      setLeaseValidationMessage(`⚠️ Your lease does NOT cover your RDD (${formattedRDD}). Please upload another document.`);
+    }
+  };
+  
+
   function renderChecklistAndUpload() {
     return (
       <>
@@ -183,9 +254,9 @@ function App() {
               <option value="Summer">Summer</option>
             </select>
           </label>
-
+  
           <br /><br />
-
+  
           <label>
             Select Year:
             <select value={year} onChange={(e) => setYear(e.target.value)} required>
@@ -195,17 +266,93 @@ function App() {
               <option value="2026">2026</option>
             </select>
           </label>
-
+  
           <br /><br />
           <button type="submit">Submit</button>
         </form>
-
+  
         <Checklist
           residencyType={residencyType}
           completedItems={completedDocuments}
           onChecklistComplete={setChecklistComplete}
         />
-
+  
+        {documentTypes.isLease && (
+          <div style={{ marginTop: '1rem' }}>
+            <label><strong>This appears to be a lease document.</strong></label><br />
+            <label>Start Date:</label>
+            <input
+              type="date"
+              onChange={(e) => {
+                setLeaseStartDate(e.target.value);
+                setTimeout(validateLeaseCoverage, 0);
+              }}
+            />
+            <br />
+            <label>End Date:</label>
+            <input
+              type="date"
+              onChange={(e) => {
+                setLeaseEndDate(e.target.value);
+                setTimeout(validateLeaseCoverage, 0);
+              }}
+            />
+  
+            {leaseValidationMessage && (
+              <div style={{
+                marginTop: '1rem',
+                fontWeight: 'bold',
+                color: leaseValidationMessage.includes('⚠️') ? 'red' : 'green'
+              }}>
+                {leaseValidationMessage}
+              </div>
+            )}
+          </div>
+        )}
+  
+        {documentTypes.isGeneralResidency && extractedDates.length > 0 && (
+          <div style={{ margin: '1rem 0' }}>
+            <label htmlFor="rddDate">We found multiple dates in your document. Please select the correct one:</label>
+            <select
+              id="rddDate"
+              value={selectedRDDDate}
+              disabled={!quarter || !year}
+              onChange={(e) => {
+                setSelectedRDDDate(e.target.value);
+                validateRDDFromExtractedDate(e.target.value);
+              }}
+            >
+              <option value="">-- Select a date --</option>
+              {extractedDates.map((date, idx) => (
+                <option key={idx} value={date}>{date}</option>
+              ))}
+            </select>
+  
+            <p style={{ marginTop: '10px' }}>Or manually enter the correct date:</p>
+            <input
+              type="date"
+              onChange={(e) => {
+                const iso = e.target.value;
+                const manual = new Date(iso).toLocaleDateString('en-US');
+                setSelectedRDDDate(manual);
+                validateRDDFromExtractedDate(manual);
+              }}
+            />
+          </div>
+        )}
+  
+        {rddValidationMessage && (
+          <div
+            style={{
+              marginTop: '1rem',
+              fontWeight: 'bold',
+              color: rddValidationMessage.includes('⚠️') ? 'red' : 'green'
+            }}
+          >
+            {rddValidationMessage}
+          </div>
+        )}
+  
         <hr />
         <h3>Upload Supporting Document</h3>
         <input type="file" onChange={handleUpload} />
@@ -218,7 +365,7 @@ function App() {
             {uploadMessage}
           </p>
         )}
-
+  
         {analysisInfo && (
           <div style={{ marginTop: '1rem' }}>
             <h4>📄 Document Analysis</h4>
@@ -237,15 +384,10 @@ function App() {
             </div>
           </div>
         )}
-
-        {rddValidationMessage && (
-          <div style={{ marginTop: '1rem', fontWeight: 'bold', color: rddValidationMessage.includes('⚠️') ? 'red' : 'green' }}>
-            {rddValidationMessage}
-          </div>
-        )}
       </>
     );
   }
+  
 
   return (
     <div className="App">

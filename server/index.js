@@ -87,7 +87,7 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
   });
 });
 
-// Analyze uploaded PDF
+// Analyze uploaded PDF and extract ALL dates
 app.post('/api/analyze', async (req, res) => {
   const { path: filePath } = req.body;
 
@@ -102,20 +102,15 @@ app.post('/api/analyze', async (req, res) => {
       data.text.toLowerCase().includes(keyword.toLowerCase())
     );
 
-    // Extract a MM/DD/YYYY style date
-    let extractedDate = null;
-    const dateMatch = data.text.match(/(\d{2}\/\d{2}\/\d{4})/);
-
-    if (dateMatch) {
-      extractedDate = dateMatch[1]; // Example: 11/15/2025
-    }
+    // Extract all MM/DD/YYYY style dates
+    const matches = data.text.match(/\d{2}\/\d{2}\/\d{4}/g) || [];
 
     res.json({
       message: 'Document analyzed successfully!',
       pageCount: data.numpages,
       foundKeywords,
-      textSnippet: data.text.slice(0, 300),
-      extractedDate
+      textSnippet: data.text.slice(0, 500),
+      extractedDates: matches
     });
   } catch (err) {
     console.error('PDF analysis error:', err);

@@ -1,10 +1,11 @@
 import { useState } from 'react';
 
+// Military first!
 const questions = [
+  { question: "Are you a U.S. military veteran or active-duty service member?", field: "isMilitary" },
   { question: "Will you be 24 years or older by the start of the reclassification quarter?", field: "isOver24" },
   { question: "Are you married?", field: "isMarried" },
   { question: "Do you have dependents (children or others) you financially support?", field: "hasDependents" },
-  { question: "Are you a U.S. military veteran or active-duty service member?", field: "isMilitary" },
   { question: "Have you been financially self-supporting for the past year?", field: "isSelfSupporting" },
   { question: "Are you currently or were you previously in foster care after the age of 13?", field: "wasInFosterCare" },
   { question: "Are your parent(s)/guardian(s) California residents?", field: "parentsInCA" },
@@ -21,6 +22,12 @@ function Quiz({ onComplete }) {
   const handleAnswer = (field, value) => {
     const newAnswers = { ...answers, [field]: value };
     setAnswers(newAnswers);
+
+    // Shortcut if user is military
+    if (field === "isMilitary" && value === true) {
+      determineStatus({ ...newAnswers, isMilitary: true });
+      return;
+    }
 
     if (current < questions.length - 1) {
       setCurrent(current + 1);
@@ -44,12 +51,12 @@ function Quiz({ onComplete }) {
       status = "independent";
     } else if (a.claimedByParents) {
       if (a.parentsInCA) {
-        status = "above19dependent-ca";   // ✅ Dependent, parents in CA
+        status = "above19dependent-ca";
       } else {
-        status = "above19dependent-nonca"; // ❌ Dependent, parents NOT in CA
+        status = "above19dependent-nonca";
       }
     } else {
-      status = "unknown"; // fallback
+      status = "unknown";
     }
 
     setFinished(true);
@@ -59,7 +66,7 @@ function Quiz({ onComplete }) {
   if (finished) {
     return (
       <div>
-        <h2>Thank you! Classifying your student type...</h2>
+        <h2>Thank you! Based on your answers, we're getting things ready for you...</h2>
       </div>
     );
   }
