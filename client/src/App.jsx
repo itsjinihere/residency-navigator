@@ -10,7 +10,7 @@ const keywordMappings = {
   'id card',
   'california id',
   'california identification card',
-  'identification card'
+  'identification card', 'ca id', 'state id', 'id', 'california id card', 'card' 
 ],
   'Lease or Rental Agreement': ['lease agreement', 'rental agreement', 'lease'],
   'Voter Registration': ['voter registration', 'political', 'political party', 'party', 'preference'],
@@ -324,36 +324,43 @@ function App() {
         )}
   
         {/* Always show RDD date selector if dates were extracted */}
-        {extractedDates.length > 0 && (
-          <div style={{ margin: '1rem 0' }}>
-            <label htmlFor="rddDate">We found multiple dates in your document. Please select the correct one:</label>
-            <select
-              id="rddDate"
-              value={selectedRDDDate}
-              disabled={!quarter || !year}
-              onChange={(e) => {
-                setSelectedRDDDate(e.target.value);
-                validateRDDFromExtractedDate(e.target.value);
-              }}
-            >
-              <option value="">-- Select a date --</option>
-              {extractedDates.map((date, idx) => (
-                <option key={idx} value={date}>{date}</option>
-              ))}
-            </select>
-  
-            <p style={{ marginTop: '10px' }}>Or manually enter the correct date:</p>
-            <input
-              type="date"
-              onChange={(e) => {
-                const iso = e.target.value;
-                const manual = new Date(iso).toLocaleDateString('en-US');
-                setSelectedRDDDate(manual);
-                validateRDDFromExtractedDate(manual);
-              }}
-            />
-          </div>
-        )}
+        {(extractedDates.length > 0 || true) && (
+  <div style={{ margin: '1rem 0' }}>
+    {extractedDates.length > 0 && (
+      <>
+        <label htmlFor="rddDate">We found multiple dates in your document. Please select the correct one:</label>
+        <select
+          id="rddDate"
+          value={selectedRDDDate}
+          disabled={!quarter || !year}
+          onChange={(e) => {
+            setSelectedRDDDate(e.target.value);
+            validateRDDFromExtractedDate(e.target.value);
+          }}
+        >
+          <option value="">-- Select a date --</option>
+          {extractedDates.map((date, idx) => (
+            <option key={idx} value={date}>{date}</option>
+          ))}
+        </select>
+
+        <p style={{ marginTop: '10px' }}>Or manually enter the correct date:</p>
+      </>
+    )}
+
+    {/* This input shows regardless of extractedDates */}
+    <input
+      type="date"
+      onChange={(e) => {
+        const iso = e.target.value;
+        const manual = new Date(iso).toLocaleDateString('en-US');
+        setSelectedRDDDate(manual);
+        validateRDDFromExtractedDate(manual);
+      }}
+    />
+  </div>
+)}
+
   
         {rddValidationMessage && (
           <div
