@@ -4,7 +4,14 @@ import Checklist from './Checklist';
 import './App.css';
 
 const keywordMappings = {
-  'CA Driver\'s License or ID': ['driver license', 'driver\'s license', 'id card'],
+  'CA Driver\'s License or ID': [
+  'driver license',
+  'driver\'s license',
+  'id card',
+  'california id',
+  'california identification card',
+  'identification card'
+],
   'Lease or Rental Agreement': ['lease agreement', 'rental agreement', 'lease'],
   'Voter Registration': ['voter registration', 'political', 'political party', 'party', 'preference'],
   'Car Registration': ['vehicle registration', 'car registration'],
@@ -103,11 +110,13 @@ function App() {
     const file = e.target.files[0];
     if (!file) return;
   
+    // Reset state
     setUploadMessage('');
     setAnalysisInfo(null);
     setRDDValidationMessage('');
     setLeaseValidationMessage('');
     setExtractedDates([]);
+    setSelectedRDDDate('');
     setDocumentTypes({ isLease: false, isGeneralResidency: false });
   
     const formData = new FormData();
@@ -131,34 +140,35 @@ function App() {
       const analysisData = await analyzeRes.json();
       setAnalysisInfo(analysisData);
   
-      setExtractedDates(analysisData.extractedDates || []);
-  
-      const text = analysisData.textSnippet.toLowerCase();
+      const { extractedDates = [], textSnippet = '' } = analysisData;
+      const text = textSnippet.toLowerCase();
       const filename = uploadData.filename.toLowerCase();
   
+      // Update document types
       const isLease = filename.includes("lease") || text.includes("lease");
-      const isGeneralResidency = ['id', 'driver', 'utility', 'bill'].some(term =>
-        filename.includes(term) || text.includes(term)
-      );
+      setDocumentTypes({ isLease, isGeneralResidency: true });
   
-      setDocumentTypes({
-        isLease,
-        isGeneralResidency
-      });
+      // Match and update checklist
+      matchUploadedDocument(textSnippet, uploadData.filename);
   
-      matchUploadedDocument(analysisData.textSnippet, uploadData.filename);
+      // If dates were found, auto-validate the first one
+      if (extractedDates.length > 0) {
+        setExtractedDates(extractedDates);
+        setSelectedRDDDate(extractedDates[0]);
+        validateRDDFromExtractedDate(extractedDates[0]);
+      }
   
     } catch (err) {
       console.error("Upload or analysis error:", err);
       setUploadMessage('❌ Failed to upload or analyze file.');
     }
-  };
+  };  
   
 
   const matchUploadedDocument = (textSnippet, filename) => {
     const lowerText = textSnippet.toLowerCase() + ' ' + filename.toLowerCase();
     const newMatches = [];
-
+  
     for (const [docName, keywords] of Object.entries(keywordMappings)) {
       for (const keyword of keywords) {
         if (lowerText.includes(keyword)) {
@@ -167,9 +177,13 @@ function App() {
         }
       }
     }
-
-    setCompletedDocuments(prev => [...new Set([...prev, ...newMatches])]);
+  
+    const updated = [...new Set([...completedDocuments, ...newMatches])];
+    setCompletedDocuments(updated);
+  
+    return newMatches;
   };
+  
 
   const validateRDDFromExtractedDate = (extractedDateStr) => {
     const rdd = getRDDDate(quarter, year);
@@ -239,7 +253,6 @@ function App() {
     }
   };
   
-
   function renderChecklistAndUpload() {
     return (
       <>
@@ -310,7 +323,8 @@ function App() {
           </div>
         )}
   
-        {documentTypes.isGeneralResidency && extractedDates.length > 0 && (
+        {/* Always show RDD date selector if dates were extracted */}
+        {extractedDates.length > 0 && (
           <div style={{ margin: '1rem 0' }}>
             <label htmlFor="rddDate">We found multiple dates in your document. Please select the correct one:</label>
             <select
@@ -355,7 +369,7 @@ function App() {
   
         <hr />
         <h3>Upload Supporting Document</h3>
-        <input type="file" onChange={handleUpload} />
+        <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleUpload} />
         {uploadMessage && (
           <p style={{
             marginTop: '10px',
@@ -388,7 +402,7 @@ function App() {
     );
   }
   
-
+  
   return (
     <div className="App">
       <h1>Residency Navigator</h1>
