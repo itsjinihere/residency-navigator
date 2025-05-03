@@ -62,12 +62,19 @@ function App() {
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [rddValidationMessage, setRDDValidationMessage] = useState('');
 
-  const [selectedRDDDate, setSelectedRDDDate] = useState('');
+  //const [selectedRDDDate, setSelectedRDDDate] = useState('');
   const [extractedDates, setExtractedDates] = useState([]);
   const [isLeaseDoc, setIsLeaseDoc] = useState(false);
   const [leaseStartDate, setLeaseStartDate] = useState('');
   const [leaseEndDate, setLeaseEndDate] = useState('');
   const [leaseValidationMessage, setLeaseValidationMessage] = useState('');
+
+  const [documentDates, setDocumentDates] = useState({});
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [currentSelectedDate, setCurrentSelectedDate] = useState('');
+
+
+
 
   const [documentTypes, setDocumentTypes] = useState({
     isLease: false,
@@ -106,8 +113,10 @@ function App() {
     }
   };
 
-  const handleUpload = async (e) => {
-    const file = e.target.files[0];
+  
+  const handleAnalyzeFile = async (file) => {
+    setCurrentSelectedDate('');
+    //const file = e.target.files[0];
     if (!file) return;
   
     // Reset state
@@ -116,7 +125,7 @@ function App() {
     setRDDValidationMessage('');
     setLeaseValidationMessage('');
     setExtractedDates([]);
-    setSelectedRDDDate('');
+    //setSelectedRDDDate('');
     setDocumentTypes({ isLease: false, isGeneralResidency: false });
   
     const formData = new FormData();
@@ -149,12 +158,12 @@ function App() {
       setDocumentTypes({ isLease, isGeneralResidency: true });
   
       // Match and update checklist
-      matchUploadedDocument(textSnippet, uploadData.filename);
+      //matchUploadedDocument(textSnippet, uploadData.filename);
   
       // If dates were found, auto-validate the first one
       if (extractedDates.length > 0) {
         setExtractedDates(extractedDates);
-        setSelectedRDDDate(extractedDates[0]);
+        setCurrentSelectedDate(extractedDates[0]);
         validateRDDFromExtractedDate(extractedDates[0]);
       }
   
@@ -163,16 +172,71 @@ function App() {
       setUploadMessage('❌ Failed to upload or analyze file.');
     }
   };  
+
+  const confirmUpload = () => {
+    if (!selectedFile || !analysisInfo) return;
+  
+    const matchedDocs = matchUploadedDocument(
+      analysisInfo.textSnippet,
+      selectedFile.name
+    );
+  
+    const newDocDates = { ...documentDates };
+  
+    matchedDocs.forEach(doc => {
+      // Only add if it's not already in completedDocuments
+      if (!completedDocuments.includes(doc)) {
+        if (doc === 'Lease or Rental Agreement') {
+          newDocDates[doc] = {
+            start: leaseStartDate,
+            end: leaseEndDate
+          };
+        } else {
+          newDocDates[doc] = currentSelectedDate;
+        }
+      }
+    });
+  
+    setDocumentDates(newDocDates);
+    setCompletedDocuments(prev => [...new Set([...prev, ...matchedDocs])]);
+  
+    setUploadMessage(`✅ ${selectedFile.name} uploaded successfully (${Math.round(selectedFile.size / 1024)} KB)`);
+  
+    // Clear temporary state
+    setSelectedFile(null);
+    setExtractedDates([]);
+    setCurrentSelectedDate('');
+    setLeaseStartDate('');
+    setLeaseEndDate('');
+    setDocumentTypes({ isLease: false, isGeneralResidency: false });
+  };
+  
+  
+  
   
 
-  const matchUploadedDocument = (textSnippet, filename) => {
+  const matchUploadedDocument = (textSnippet, filename, dateLabel = null) => {
     const lowerText = textSnippet.toLowerCase() + ' ' + filename.toLowerCase();
     const newMatches = [];
+    const newDates = { ...documentDates };
   
     for (const [docName, keywords] of Object.entries(keywordMappings)) {
       for (const keyword of keywords) {
         if (lowerText.includes(keyword)) {
           newMatches.push(docName);
+  
+          if (dateLabel) {
+            // If it's already a lease, preserve start/end
+            if (typeof newDates[docName] === 'object') {
+              newDates[docName] = {
+                ...newDates[docName],
+                single: dateLabel // fallback for lease if clicked
+              };
+            } else {
+              newDates[docName] = dateLabel;
+            }
+          }
+  
           break;
         }
       }
@@ -180,11 +244,11 @@ function App() {
   
     const updated = [...new Set([...completedDocuments, ...newMatches])];
     setCompletedDocuments(updated);
+    setDocumentDates(newDates);
   
     return newMatches;
   };
   
-
   const validateRDDFromExtractedDate = (extractedDateStr) => {
     const rdd = getRDDDate(quarter, year);
   
@@ -287,29 +351,50 @@ function App() {
         <Checklist
           residencyType={residencyType}
           completedItems={completedDocuments}
+          documentDates={documentDates}
+          setDocumentDates={setDocumentDates}
           onChecklistComplete={setChecklistComplete}
-        />
-  
-        {documentTypes.isLease && (
-          <div style={{ marginTop: '1rem' }}>
-            <label><strong>This appears to be a lease document.</strong></label><br />
-            <label>Start Date:</label>
-            <input
-              type="date"
-              onChange={(e) => {
-                setLeaseStartDate(e.target.value);
-                setTimeout(validateLeaseCoverage, 0);
-              }}
-            />
-            <br />
-            <label>End Date:</label>
-            <input
-              type="date"
-              onChange={(e) => {
-                setLeaseEndDate(e.target.value);
-                setTimeout(validateLeaseCoverage, 0);
-              }}
-            />
+        />  
+        {/* {documentTypes.isLease && (
+  <div style={{ marginTop: '1rem' }}>
+    <label><strong>This appears to be a lease document.</strong></label><br />
+    
+    <label>Start Date:</label>
+    <input
+      type="date"
+      value={leaseStartDate ? new Date(leaseStartDate).toISOString().split('T')[0] : ''}
+      onChange={(e) => {
+        const formatted = new Date(e.target.value).toLocaleDateString('en-US');
+        setLeaseStartDate(formatted);
+        setDocumentDates(prev => ({
+          ...prev,
+          'Lease or Rental Agreement': {
+            ...prev['Lease or Rental Agreement'],
+            start: formatted
+          }
+        }));
+        validateLeaseCoverage();
+      }}
+    />
+    <br />
+
+    <label>End Date:</label>
+    <input
+      type="date"
+      value={leaseEndDate ? new Date(leaseEndDate).toISOString().split('T')[0] : ''}
+      onChange={(e) => {
+        const formatted = new Date(e.target.value).toLocaleDateString('en-US');
+        setLeaseEndDate(formatted);
+        setDocumentDates(prev => ({
+          ...prev,
+          'Lease or Rental Agreement': {
+            ...prev['Lease or Rental Agreement'],
+            end: formatted
+          }
+        }));
+        validateLeaseCoverage();
+      }}
+    />
   
             {leaseValidationMessage && (
               <div style={{
@@ -322,44 +407,34 @@ function App() {
             )}
           </div>
         )}
-  
+   */}
         {/* Always show RDD date selector if dates were extracted */}
-        {(extractedDates.length > 0 || true) && (
-  <div style={{ margin: '1rem 0' }}>
-    {extractedDates.length > 0 && (
-      <>
-        <label htmlFor="rddDate">We found multiple dates in your document. Please select the correct one:</label>
-        <select
-          id="rddDate"
-          value={selectedRDDDate}
-          disabled={!quarter || !year}
-          onChange={(e) => {
-            setSelectedRDDDate(e.target.value);
-            validateRDDFromExtractedDate(e.target.value);
-          }}
-        >
-          <option value="">-- Select a date --</option>
-          {extractedDates.map((date, idx) => (
-            <option key={idx} value={date}>{date}</option>
-          ))}
-        </select>
+        {/* {selectedFile && extractedDates.length > 0 && (
+  <>
+    <label>Select document issue date (for checklist):</label>
+    <select
+  value={currentSelectedDate}
+  onChange={(e) => setCurrentSelectedDate(e.target.value)}
+>
+      <option value="">-- Select a date --</option>
+      {extractedDates.map((date, idx) => (
+        <option key={idx} value={date}>{date}</option>
+      ))}
+    </select>
 
-        <p style={{ marginTop: '10px' }}>Or manually enter the correct date:</p>
-      </>
-    )}
-
-    {/* This input shows regardless of extractedDates */}
+    <p style={{ marginTop: '10px' }}>Or manually enter the correct date:</p>
     <input
       type="date"
       onChange={(e) => {
         const iso = e.target.value;
         const manual = new Date(iso).toLocaleDateString('en-US');
-        setSelectedRDDDate(manual);
+        setCurrentSelectedDate(manual);
         validateRDDFromExtractedDate(manual);
+
       }}
     />
-  </div>
-)}
+  </>
+)} */}
 
   
         {rddValidationMessage && (
@@ -376,7 +451,100 @@ function App() {
   
         <hr />
         <h3>Upload Supporting Document</h3>
-        <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleUpload} />
+        <input
+  type="file"
+  accept=".pdf,.jpg,.jpeg,.png"
+  onChange={(e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setSelectedFile(file); // store for later upload
+    handleAnalyzeFile(file)
+    //setUploadMessage('');
+    //setAnalysisInfo(null);
+    //setRDDValidationMessage('');
+    //setLeaseValidationMessage('');
+    //setExtractedDates([]);
+    //setSelectedRDDDate('');
+    //setDocumentTypes({ isLease: false, isGeneralResidency: false });
+  }}
+/>
+{selectedFile && (
+  <>
+    {documentTypes.isLease && (
+      <>
+        <label>Start Date:</label>
+        <input
+          type="date"
+          value={leaseStartDate ? new Date(leaseStartDate).toISOString().split('T')[0] : ''}
+          onChange={(e) => {
+            const formatted = new Date(e.target.value).toLocaleDateString('en-US');
+            setLeaseStartDate(formatted);
+          }}
+        /><br />
+
+        <label>End Date:</label>
+        <input
+          type="date"
+          value={leaseEndDate ? new Date(leaseEndDate).toISOString().split('T')[0] : ''}
+          onChange={(e) => {
+            const formatted = new Date(e.target.value).toLocaleDateString('en-US');
+            setLeaseEndDate(formatted);
+          }}
+        /><br />
+      </>
+    )}
+
+    <label>Select document issue date (for checklist):</label>
+    <select
+      value={currentSelectedDate}
+      onChange={(e) => {
+        setCurrentSelectedDate(e.target.value);
+        validateRDDFromExtractedDate(e.target.value);
+      }}
+      disabled={extractedDates.length === 0}
+    >
+      <option value="">-- Select a date --</option>
+      {extractedDates.map((date, idx) => (
+        <option key={idx} value={date}>{date}</option>
+      ))}
+    </select>
+
+    <p style={{ marginTop: '10px' }}>Or manually enter the correct date:</p>
+    <input
+      type="date"
+      onChange={(e) => {
+        const iso = e.target.value;
+        const manual = new Date(iso).toLocaleDateString('en-US');
+        setCurrentSelectedDate(manual);
+        validateRDDFromExtractedDate(manual);
+      }}
+    />
+
+    <button
+      onClick={confirmUpload}
+      disabled={
+        !currentSelectedDate ||
+        (documentTypes.isLease && (!leaseStartDate || !leaseEndDate))
+      }
+      style={{
+        marginTop: '10px',
+        backgroundColor: '#007bff',
+        color: 'white',
+        padding: '0.5rem 1rem',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: 'pointer'
+      }}
+    >
+      Upload This Document
+    </button>
+  </>
+)}
+
+
+
+
         {uploadMessage && (
           <p style={{
             marginTop: '10px',
