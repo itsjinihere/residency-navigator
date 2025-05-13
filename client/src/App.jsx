@@ -2,6 +2,13 @@ import { useEffect, useState } from 'react';
 import Quiz from './Quiz';
 import Checklist from './Checklist';
 import './App.css';
+import Navbar from './Navbar'; 
+import QuizReview from './QuizReview';
+import { Routes, Route, useNavigate } from 'react-router-dom';
+import QuizReviewPage from './QuizReviewPage';
+import HomePage from './HomePage'; // ✅ import the component you just made
+
+
 
 const keywordMappings = {
   'CA Driver\'s License or ID': [
@@ -424,6 +431,7 @@ function App() {
           <button type="submit">Submit</button>
         </form>
   
+        <div id="checklist">
         <Checklist
           residencyType={residencyType}
           completedItems={completedDocuments}
@@ -434,6 +442,7 @@ function App() {
           financialDocs={financialDocs}
           setFinancialDocs={setFinancialDocs}
         />  
+        </div>
   
   {(rddValidationMessage || crossCheckMessage) && (
   <div style={{ marginTop: '1rem' }}>
@@ -465,9 +474,11 @@ function App() {
 
 
   
+<div id="upload" style={{ marginTop: '2rem' }}>
         <hr />
         <h3>Upload Supporting Document</h3>
         <input
+        
   type="file"
   accept=".pdf,.jpg,.jpeg,.png"
   onChange={(e) => {
@@ -477,7 +488,10 @@ function App() {
     setSelectedFile(file); // store for later upload
     handleAnalyzeFile(file)
   }}
+  
 />
+</div>
+
 {selectedFile && (
   <>
     {documentTypes.isLease && (
@@ -604,54 +618,27 @@ function App() {
   
   return (
     <div className="App">
-      <h1>Residency Navigator</h1>
-      <p>Welcome to the prototype!</p>
-
-      {status ? (
-        <div>
-          <p><strong>{status.message}</strong></p>
-          <p>{status.timestamp}</p>
-        </div>
-      ) : (
-        <p>Checking backend status...</p>
-      )}
-
-      <hr />
-
-      {!quizCompleted ? (
-        <Quiz
-        onComplete={(determinedType, allAnswers) => {
-          setResidencyType(determinedType);
-          setQuizAnswers(allAnswers); // ✅ capture names, DOB, etc.
-          setQuizCompleted(true);
-        }}
-      />
-      
-      ) : (
-        <>
-          {residencyType === 'above19dependent-nonca' ? (
-            <div style={{ marginTop: '2rem' }}>
-              <h2>❌ Based on your answers, you are currently NOT eligible for California residency.</h2>
-              <p>Because you are financially dependent on non-California parents, you are not considered a CA resident.</p>
-              <h4>➡️ Ways you may become eligible in the future:</h4>
-              <ul>
-                <li>Become financially independent (file taxes independently, self-supporting income)</li>
-                <li>Get married (may qualify you as independent)</li>
-                <li>Your parents move to California and establish residency</li>
-                <li>Live independently in California for 1+ year without being claimed on parents' taxes</li>
-              </ul>
-            </div>
-          ) : residencyType === 'above19dependent-ca' ? (
-            <div style={{ marginTop: '2rem' }}>
-              <h2>⚠️ Based on your answers, your eligibility depends on your parents' California residency.</h2>
-              <p>You are financially dependent but your parents are California residents. Please proceed to upload documents showing their CA status (tax returns, lease, ID, etc).</p>
-              {renderChecklistAndUpload()}
-            </div>
-          ) : (
-            renderChecklistAndUpload()
-          )}
-        </>
-      )}
+      <Navbar />
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <HomePage
+              status={status}
+              quizCompleted={quizCompleted}
+              residencyType={residencyType}
+              quizAnswers={quizAnswers}
+              setResidencyType={setResidencyType}
+              setQuizAnswers={setQuizAnswers}
+              setQuizCompleted={setQuizCompleted}
+              renderChecklistAndUpload={renderChecklistAndUpload}
+            />
+          }
+        />
+        <Route
+          path="/review"
+          element={<QuizReviewPage quizAnswers={quizAnswers} setQuizAnswers={setQuizAnswers} />} />
+      </Routes>
     </div>
   );
 }

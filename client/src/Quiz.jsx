@@ -100,7 +100,7 @@ function Quiz({ onComplete }) {
 
   if (reviewing) {
     return (
-      <div>
+      <div id="quiz-review" style={{ marginTop: '2rem' }}>
         <h2>Review Your Answers</h2>
         <ul>
           {visibleQuestions.map((q) => {

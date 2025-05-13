@@ -1,0 +1,31 @@
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background-color: #064313;
+    color: white;
+    z-index: 1000;
+    padding: 10px 0;
+  }
+  
+  .navbar-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 2rem; /* match your #root padding */
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    justify-content: center;
+
+  }
+  
+  .navbar a {
+    color: white;
+    text-decoration: none;
+  }
+  
+  .navbar a:hover {
+    text-decoration: underline;
+  }
+  

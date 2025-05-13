@@ -40,3 +40,17 @@
 .read-the-docs {
   color: #888;
 }
+
+html {
+  scroll-behavior: smooth;
+}
+
+#quiz-answers,
+#checklist,
+#upload,
+#status,
+#home {
+  scroll-margin-top: 80px; /* Adjust based on navbar height */
+}
+
+
