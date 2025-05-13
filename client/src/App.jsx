@@ -73,16 +73,11 @@ function App() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [currentSelectedDate, setCurrentSelectedDate] = useState('');
 
-
-
-
   const [documentTypes, setDocumentTypes] = useState({
     isLease: false,
     isGeneralResidency: false
   });
   
-
-
   useEffect(() => {
     fetch('http://localhost:3000/api/status')
       .then((res) => res.json())
@@ -113,7 +108,6 @@ function App() {
     }
   };
 
-  
   const handleAnalyzeFile = async (file) => {
     setCurrentSelectedDate('');
     //const file = e.target.files[0];
@@ -125,7 +119,6 @@ function App() {
     setRDDValidationMessage('');
     setLeaseValidationMessage('');
     setExtractedDates([]);
-    //setSelectedRDDDate('');
     setDocumentTypes({ isLease: false, isGeneralResidency: false });
   
     const formData = new FormData();
@@ -156,9 +149,6 @@ function App() {
       // Update document types
       const isLease = filename.includes("lease") || text.includes("lease");
       setDocumentTypes({ isLease, isGeneralResidency: true });
-  
-      // Match and update checklist
-      //matchUploadedDocument(textSnippet, uploadData.filename);
   
       // If dates were found, auto-validate the first one
       if (extractedDates.length > 0) {
@@ -211,10 +201,6 @@ function App() {
     setDocumentTypes({ isLease: false, isGeneralResidency: false });
   };
   
-  
-  
-  
-
   const matchUploadedDocument = (textSnippet, filename, dateLabel = null) => {
     const lowerText = textSnippet.toLowerCase() + ' ' + filename.toLowerCase();
     const newMatches = [];
@@ -283,7 +269,6 @@ function App() {
     }
   };
   
-
   useEffect(() => {
     if (checklistComplete) {
       setEligibility(true);
@@ -355,87 +340,6 @@ function App() {
           setDocumentDates={setDocumentDates}
           onChecklistComplete={setChecklistComplete}
         />  
-        {/* {documentTypes.isLease && (
-  <div style={{ marginTop: '1rem' }}>
-    <label><strong>This appears to be a lease document.</strong></label><br />
-    
-    <label>Start Date:</label>
-    <input
-      type="date"
-      value={leaseStartDate ? new Date(leaseStartDate).toISOString().split('T')[0] : ''}
-      onChange={(e) => {
-        const formatted = new Date(e.target.value).toLocaleDateString('en-US');
-        setLeaseStartDate(formatted);
-        setDocumentDates(prev => ({
-          ...prev,
-          'Lease or Rental Agreement': {
-            ...prev['Lease or Rental Agreement'],
-            start: formatted
-          }
-        }));
-        validateLeaseCoverage();
-      }}
-    />
-    <br />
-
-    <label>End Date:</label>
-    <input
-      type="date"
-      value={leaseEndDate ? new Date(leaseEndDate).toISOString().split('T')[0] : ''}
-      onChange={(e) => {
-        const formatted = new Date(e.target.value).toLocaleDateString('en-US');
-        setLeaseEndDate(formatted);
-        setDocumentDates(prev => ({
-          ...prev,
-          'Lease or Rental Agreement': {
-            ...prev['Lease or Rental Agreement'],
-            end: formatted
-          }
-        }));
-        validateLeaseCoverage();
-      }}
-    />
-  
-            {leaseValidationMessage && (
-              <div style={{
-                marginTop: '1rem',
-                fontWeight: 'bold',
-                color: leaseValidationMessage.includes('⚠️') ? 'red' : 'green'
-              }}>
-                {leaseValidationMessage}
-              </div>
-            )}
-          </div>
-        )}
-   */}
-        {/* Always show RDD date selector if dates were extracted */}
-        {/* {selectedFile && extractedDates.length > 0 && (
-  <>
-    <label>Select document issue date (for checklist):</label>
-    <select
-  value={currentSelectedDate}
-  onChange={(e) => setCurrentSelectedDate(e.target.value)}
->
-      <option value="">-- Select a date --</option>
-      {extractedDates.map((date, idx) => (
-        <option key={idx} value={date}>{date}</option>
-      ))}
-    </select>
-
-    <p style={{ marginTop: '10px' }}>Or manually enter the correct date:</p>
-    <input
-      type="date"
-      onChange={(e) => {
-        const iso = e.target.value;
-        const manual = new Date(iso).toLocaleDateString('en-US');
-        setCurrentSelectedDate(manual);
-        validateRDDFromExtractedDate(manual);
-
-      }}
-    />
-  </>
-)} */}
-
   
         {rddValidationMessage && (
           <div
@@ -460,13 +364,6 @@ function App() {
 
     setSelectedFile(file); // store for later upload
     handleAnalyzeFile(file)
-    //setUploadMessage('');
-    //setAnalysisInfo(null);
-    //setRDDValidationMessage('');
-    //setLeaseValidationMessage('');
-    //setExtractedDates([]);
-    //setSelectedRDDDate('');
-    //setDocumentTypes({ isLease: false, isGeneralResidency: false });
   }}
 />
 {selectedFile && (
@@ -476,20 +373,20 @@ function App() {
         <label>Start Date:</label>
         <input
           type="date"
-          value={leaseStartDate ? new Date(leaseStartDate).toISOString().split('T')[0] : ''}
+          value={leaseStartDate}
           onChange={(e) => {
-            const formatted = new Date(e.target.value).toLocaleDateString('en-US');
-            setLeaseStartDate(formatted);
+            //const formatted = new Date(e.target.value).toLocaleDateString('en-US');
+            setLeaseStartDate(e.target.value);
           }}
         /><br />
 
         <label>End Date:</label>
         <input
           type="date"
-          value={leaseEndDate ? new Date(leaseEndDate).toISOString().split('T')[0] : ''}
+          value={leaseEndDate}
           onChange={(e) => {
-            const formatted = new Date(e.target.value).toLocaleDateString('en-US');
-            setLeaseEndDate(formatted);
+            //const formatted = new Date(e.target.value).toLocaleDateString('en-US');
+            setLeaseEndDate(e.target.value);
           }}
         /><br />
       </>
@@ -514,8 +411,8 @@ function App() {
     <input
       type="date"
       onChange={(e) => {
-        const iso = e.target.value;
-        const manual = new Date(iso).toLocaleDateString('en-US');
+        const [year, month, day] = e.target.value.split("-");
+        const manual = `${parseInt(month)}/${parseInt(day)}/${year}`;
         setCurrentSelectedDate(manual);
         validateRDDFromExtractedDate(manual);
       }}
@@ -541,9 +438,6 @@ function App() {
     </button>
   </>
 )}
-
-
-
 
         {uploadMessage && (
           <p style={{
