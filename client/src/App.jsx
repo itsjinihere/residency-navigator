@@ -29,7 +29,15 @@ const keywordMappings = {
   'Military ID': ['military id'],
   'Proof of CA Stationing': ['ca stationing proof'],
   'Military Spouse or Dependent Documentation': ['military dependent'],
-  'Utility Bill at CA address': ['utility bill']
+  'Utility Bill at CA address': ['utility bill'],
+  "Parent\'s Tax Return": [
+  'form 1040','1040', 'irs', 'social security',
+  'u.s. individual income tax return',
+  'internal revenue service',
+  'irs form 1040',
+  '2022 tax return', '2023 tax return', '2024 tax return'
+],
+
 };
 
 // Helper to get RDD date
@@ -72,6 +80,9 @@ function App() {
   const [documentDates, setDocumentDates] = useState({});
   const [selectedFile, setSelectedFile] = useState(null);
   const [currentSelectedDate, setCurrentSelectedDate] = useState('');
+
+  const [financialDocs, setFinancialDocs] = useState([]);
+
 
   const [documentTypes, setDocumentTypes] = useState({
     isLease: false,
@@ -148,7 +159,13 @@ function App() {
   
       // Update document types
       const isLease = filename.includes("lease") || text.includes("lease");
-      setDocumentTypes({ isLease, isGeneralResidency: true });
+      const isTaxReturn = ['form 1040', 'irs', 'tax return'].some(kw => text.includes(kw));
+
+      setDocumentTypes({
+        isLease,
+        isGeneralResidency: true,
+        isTaxReturn
+      });
   
       // If dates were found, auto-validate the first one
       if (extractedDates.length > 0) {
@@ -166,10 +183,49 @@ function App() {
   const confirmUpload = () => {
     if (!selectedFile || !analysisInfo) return;
   
-    const matchedDocs = matchUploadedDocument(
+    let matchedDocs = matchUploadedDocument(
       analysisInfo.textSnippet,
       selectedFile.name
     );
+    
+    // Force correct matching if it’s a tax return
+    if (documentTypes.isTaxReturn) {
+      matchedDocs = ["Parent's Tax Return"];
+    }
+    
+
+    // Detect and record parent tax return years
+    // if (residencyType === 'independent') {
+    //   const text = analysisInfo.textSnippet.toLowerCase();
+    //   const filename = selectedFile.name.toLowerCase();
+
+    //   const parentTaxDoc = filename.includes("parent") || text.includes("parent");
+
+    //   if (parentTaxDoc) {
+    //     const petitionYear = Number(year);
+    //     const expectedYears = [petitionYear - 1, petitionYear - 2, petitionYear - 3];
+      
+    //     const yearMatches = [...text.matchAll(/\b(20\d{2})\b/g)];
+    //     const extractedYears = yearMatches.map(match => parseInt(match[1]));
+      
+    //     const validYears = extractedYears.filter(y => expectedYears.includes(y)).map(String);
+      
+    //     if (validYears.length > 0) {
+    //       setFinancialDocs(prev => [...new Set([...prev, ...validYears])]);
+    //     }
+    //   } }
+
+    if (documentTypes.isTaxReturn && residencyType === 'independent') {
+      const petitionYear = Number(year);
+      const expectedYears = [petitionYear - 1, petitionYear - 2, petitionYear - 3];
+      const validYears = (analysisInfo?.taxYears || []).filter(y => expectedYears.includes(Number(y)));
+    
+      if (validYears.length > 0) {
+        setFinancialDocs(prev => [...new Set([...prev, ...validYears])]);
+      }
+    }
+    
+      
   
     const newDocDates = { ...documentDates };
   
@@ -203,8 +259,23 @@ function App() {
   
   const matchUploadedDocument = (textSnippet, filename, dateLabel = null) => {
     const lowerText = textSnippet.toLowerCase() + ' ' + filename.toLowerCase();
+  
+    // ⛔️ Hard filter for parent tax return
+    if (documentTypes.isTaxReturn) {
+      const docName = "Parent's Tax Return";
+      const newDates = { ...documentDates };
+      if (dateLabel) newDates[docName] = dateLabel;
+  
+      setCompletedDocuments(prev => [...new Set([...prev, docName])]);
+      setDocumentDates(newDates);
+  
+      return [docName];
+    }
+  
+    // ✅ Continue with normal matching
     const newMatches = [];
     const newDates = { ...documentDates };
+  
   
     for (const [docName, keywords] of Object.entries(keywordMappings)) {
       for (const keyword of keywords) {
@@ -339,6 +410,9 @@ function App() {
           documentDates={documentDates}
           setDocumentDates={setDocumentDates}
           onChecklistComplete={setChecklistComplete}
+          petitionYear={year}
+          financialDocs={financialDocs}
+          setFinancialDocs={setFinancialDocs}
         />  
   
         {rddValidationMessage && (
@@ -392,6 +466,21 @@ function App() {
       </>
     )}
 
+{documentTypes.isTaxReturn ? (
+  <>
+    <label>Select tax year:</label>
+    <select
+      value={currentSelectedDate}
+      onChange={(e) => setCurrentSelectedDate(e.target.value)}
+    >
+      <option value="">-- Select tax year --</option>
+      {analysisInfo?.taxYears?.map((year, idx) => (
+        <option key={idx} value={year}>{year}</option>
+      ))}
+    </select>
+  </>
+) : (
+  <>
     <label>Select document issue date (for checklist):</label>
     <select
       value={currentSelectedDate}
@@ -417,6 +506,9 @@ function App() {
         validateRDDFromExtractedDate(manual);
       }}
     />
+  </>
+)}
+
 
     <button
       onClick={confirmUpload}

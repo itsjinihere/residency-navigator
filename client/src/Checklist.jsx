@@ -54,7 +54,22 @@ const residencyRequirements = {
   }
 };
 
-const Checklist = ({ residencyType, completedItems, documentDates, setDocumentDates, onChecklistComplete }) => {
+const getRequiredTaxYears = (petitionYear) => {
+  if (!petitionYear) return [];
+  const y = parseInt(petitionYear);
+  return [y - 3, y - 2, y - 1].map(String);
+};
+
+const Checklist = ({
+  residencyType,
+  completedItems,
+  documentDates,
+  setDocumentDates,
+  onChecklistComplete,
+  petitionYear,
+  financialDocs = [],
+  setFinancialDocs
+}) => {
   const [editingItem, setEditingItem] = useState(null);
 
   if (!residencyType) return null;
@@ -75,17 +90,56 @@ const Checklist = ({ residencyType, completedItems, documentDates, setDocumentDa
 
   const completedListA = listA.filter(item => completedItems.includes(item));
   const completedListB = listB.filter(item => completedItems.includes(item));
+  const requiredTaxYears = petitionYear ? getRequiredTaxYears(petitionYear) : [];
+  const completedTaxYears = petitionYear ? requiredTaxYears.filter(year => financialDocs.includes(year)) : [];
+
 
   const hasListARequirement = completedListA.length >= 1;
-  const totalDocumentsUploaded = completedListA.length + completedListB.length;
-  const enoughDocumentsUploaded = totalDocumentsUploaded >= 3;
-  const checklistComplete = hasListARequirement && enoughDocumentsUploaded;
+  // const totalDocumentsUploaded = completedListA.length + completedListB.length;
+  // const enoughDocumentsUploaded = totalDocumentsUploaded >= 3;
+  // const financialDocsComplete = cleanedResidencyType === 'independent'
+  //   ? completedTaxYears.length === requiredTaxYears.length
+  //   : true;
+  // const checklistComplete = hasListARequirement && enoughDocumentsUploaded;
+
+  // Section 1: Residency Docs (List A + List B)
+  const totalResidencyDocs = completedListA.length + completedListB.length;
+  const residencyDocsComplete = hasListARequirement && totalResidencyDocs >= 3;
+
+  // Section 2: Financial Docs (for independent students)
+  const financialDocsComplete = cleanedResidencyType !== 'independent' || completedTaxYears.length === requiredTaxYears.length;
+
+  // Section 3: (optional) RDD date valid? You can skip for now
+
+  // Final checklist complete flag
+  const checklistComplete = residencyDocsComplete && financialDocsComplete;
+
+  // Progress tracking
+  const requiredResidencyDocs = 3;
+  const requiredTaxDocs = 3;
+  const totalRequiredDocs = requiredResidencyDocs + requiredTaxDocs;
+
+  const residencyDocsUploaded = completedListA.length + completedListB.length;
+  const residencyDocsCounted = Math.min(residencyDocsUploaded, requiredResidencyDocs);
+
+  const taxDocsUploaded = completedTaxYears.length;
+  const taxDocsCounted = Math.min(taxDocsUploaded, requiredTaxDocs);
+
+  const progress = petitionYear
+    ? Math.round(((residencyDocsCounted + taxDocsCounted) / totalRequiredDocs) * 100)
+    : 0;
+
+
+
+
+
 
   useEffect(() => {
-    if (onChecklistComplete) {
+    if (onChecklistComplete && petitionYear) {
       onChecklistComplete(checklistComplete);
     }
-  }, [checklistComplete, onChecklistComplete]);
+  }, [checklistComplete, onChecklistComplete, petitionYear]);
+  
 
   const formatToInputDate = (str) => {
     if (!str) return '';
@@ -155,6 +209,14 @@ const Checklist = ({ residencyType, completedItems, documentDates, setDocumentDa
     );
   };
 
+  // const totalSections = 2 + (cleanedResidencyType === 'independent' ? 1 : 0);
+  // const completeSections = [
+  //   hasListARequirement && enoughDocumentsUploaded,
+  //   cleanedResidencyType !== 'independent' || financialDocsComplete
+  // ].filter(Boolean).length;
+
+  // const progress = Math.round((completeSections / totalSections) * 100);
+
   return (
     <div>
       <h3>Checklist for {residencyType.charAt(0).toUpperCase() + residencyType.slice(1).replace(/-/g, ' ')} Student</h3>
@@ -165,8 +227,29 @@ const Checklist = ({ residencyType, completedItems, documentDates, setDocumentDa
       <h4>📂 List B (choose additional documents)</h4>
       <ul>{listB.map(renderItem)}</ul>
 
+      {cleanedResidencyType === 'independent' && petitionYear && (
+        <>
+          <h4>📄 Financial Independence (Parent Tax Returns)</h4>
+          <ul>
+            {requiredTaxYears.map((year) => (
+              <li key={year}>
+                {financialDocs.includes(year) ? '✅' : '⬜️'} Parent's Tax Return – {year}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
       <div style={{ marginTop: '20px' }}>
-        <p><strong>Progress:</strong> {Math.min(Math.round((totalDocumentsUploaded / 3) * 100), 100)}% complete</p>
+      <p title="Progress is based on required residency documents and parent tax returns">
+        <strong>Progress:</strong> {progress}% complete
+      </p>
+
+      <p style={{ fontSize: '0.9rem', color: '#666' }}>
+        {residencyDocsCounted}/3 residency docs • {taxDocsCounted}/3 tax returns
+      </p>
+
+
         <div style={{
           height: '10px',
           width: '100%',
@@ -175,11 +258,12 @@ const Checklist = ({ residencyType, completedItems, documentDates, setDocumentDa
           marginBottom: '10px'
         }}>
           <div style={{
-            width: `${Math.min(Math.round((totalDocumentsUploaded / 3) * 100), 100)}%`,
+            width: `${progress}%`,
             height: '100%',
             backgroundColor: checklistComplete ? 'green' : '#007bff',
             borderRadius: '5px'
           }} />
+
         </div>
 
         {checklistComplete ? (

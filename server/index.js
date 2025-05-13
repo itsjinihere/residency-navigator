@@ -124,17 +124,25 @@ app.post('/api/analyze', async (req, res) => {
       }
     });
 
+    const taxYearMatches = text.match(/\b20(2[0-9])\b/g);
+    const taxYears = taxYearMatches ? Array.from(new Set(taxYearMatches)) : [];
+
     const keywords = [
       'California ID', 'California', 'lease', 'utility bill',
-      'driver’s license', 'voter registration', 'vote-by-mail'
+      'driver’s license', 'voter registration', 'vote-by-mail',
+      'form 1040', 'u.s. individual income tax return', 'irs', 'tax return'
     ];
+    
     const foundKeywords = keywords.filter(keyword =>
       text.toLowerCase().includes(keyword.toLowerCase())
     );
 
+    console.log('Extracted Tax Years:', taxYears);
+
     res.json({
       message: 'Document analyzed successfully!',
       foundKeywords,
+      taxYears,
       textSnippet: text.slice(0, 500),
       extractedDates: Array.from(normalizedDates),
       pageCount: ext === '.pdf' ? undefined : 'N/A'
