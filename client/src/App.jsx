@@ -54,6 +54,14 @@ const getRDDDate = (quarter, year) => {
   }
 };
 
+const getNameMatchScore = (target, first, last) => {
+  const normalize = (s) => s?.toLowerCase().replace(/[^a-z]/g, '');
+  const name = normalize(target);
+  return name.includes(normalize(first)) && name.includes(normalize(last));
+};
+
+
+
 function App() {
   const [status, setStatus] = useState(null);
   const [residencyType, setResidencyType] = useState('');
@@ -82,6 +90,10 @@ function App() {
   const [currentSelectedDate, setCurrentSelectedDate] = useState('');
 
   const [financialDocs, setFinancialDocs] = useState([]);
+  const [quizAnswers, setQuizAnswers] = useState({});
+  const [crossCheckMessage, setCrossCheckMessage] = useState('');
+
+
 
 
   const [documentTypes, setDocumentTypes] = useState({
@@ -187,33 +199,36 @@ function App() {
       analysisInfo.textSnippet,
       selectedFile.name
     );
+
+    let crossCheckWarning = null;
+    const docText = analysisInfo.textSnippet.toLowerCase();
+
+    // Check if CA ID matches user
+    if (matchedDocs.includes("CA Driver's License or ID")) {
+      const nameMatch = getNameMatchScore(docText, quizAnswers.firstName, quizAnswers.lastName);
+      const dobMatch = quizAnswers.dob && docText.includes(quizAnswers.dob.replace(/-/g, '/'));
+      if (!nameMatch || !dobMatch) {
+        crossCheckWarning = "⚠️ This doesn't appear to be your CA ID.";
+      }
+    }
+
+    // Check if parent tax return matches either parent
+    if (matchedDocs.includes("Parent's Tax Return")) {
+      const parent1Match = getNameMatchScore(docText, quizAnswers.parent1First, quizAnswers.parent1Last);
+      const parent2Match = quizAnswers.parent2First
+        ? getNameMatchScore(docText, quizAnswers.parent2First, quizAnswers.parent2Last)
+        : false;
+      if (!parent1Match && !parent2Match) {
+        crossCheckWarning = "⚠️ This may not match your parent or guardian’s name.";
+      }
+    }
+
     
     // Force correct matching if it’s a tax return
     if (documentTypes.isTaxReturn) {
       matchedDocs = ["Parent's Tax Return"];
     }
-    
 
-    // Detect and record parent tax return years
-    // if (residencyType === 'independent') {
-    //   const text = analysisInfo.textSnippet.toLowerCase();
-    //   const filename = selectedFile.name.toLowerCase();
-
-    //   const parentTaxDoc = filename.includes("parent") || text.includes("parent");
-
-    //   if (parentTaxDoc) {
-    //     const petitionYear = Number(year);
-    //     const expectedYears = [petitionYear - 1, petitionYear - 2, petitionYear - 3];
-      
-    //     const yearMatches = [...text.matchAll(/\b(20\d{2})\b/g)];
-    //     const extractedYears = yearMatches.map(match => parseInt(match[1]));
-      
-    //     const validYears = extractedYears.filter(y => expectedYears.includes(y)).map(String);
-      
-    //     if (validYears.length > 0) {
-    //       setFinancialDocs(prev => [...new Set([...prev, ...validYears])]);
-    //     }
-    //   } }
 
     if (documentTypes.isTaxReturn && residencyType === 'independent') {
       const petitionYear = Number(year);
@@ -224,9 +239,7 @@ function App() {
         setFinancialDocs(prev => [...new Set([...prev, ...validYears])]);
       }
     }
-    
-      
-  
+     
     const newDocDates = { ...documentDates };
   
     matchedDocs.forEach(doc => {
@@ -247,7 +260,14 @@ function App() {
     setCompletedDocuments(prev => [...new Set([...prev, ...matchedDocs])]);
   
     setUploadMessage(`✅ ${selectedFile.name} uploaded successfully (${Math.round(selectedFile.size / 1024)} KB)`);
-  
+    if (crossCheckWarning) {
+      setCrossCheckMessage(crossCheckWarning);
+    } else {
+      setCrossCheckMessage('');
+    }
+    
+    
+
     // Clear temporary state
     setSelectedFile(null);
     setExtractedDates([]);
@@ -415,17 +435,27 @@ function App() {
           setFinancialDocs={setFinancialDocs}
         />  
   
-        {rddValidationMessage && (
-          <div
-            style={{
-              marginTop: '1rem',
-              fontWeight: 'bold',
-              color: rddValidationMessage.includes('⚠️') ? 'red' : 'green'
-            }}
-          >
-            {rddValidationMessage}
-          </div>
-        )}
+  {(rddValidationMessage || crossCheckMessage) && (
+  <div style={{ marginTop: '1rem' }}>
+    {rddValidationMessage && (
+      <p style={{
+        fontWeight: 'bold',
+        color: rddValidationMessage.includes('⚠️') ? 'red' : 'green'
+      }}>
+        {rddValidationMessage}
+      </p>
+    )}
+    {crossCheckMessage && (
+      <p style={{
+        fontWeight: 'bold',
+        color: 'red'
+      }}>
+        {crossCheckMessage}
+      </p>
+    )}
+  </div>
+)}
+
   
         <hr />
         <h3>Upload Supporting Document</h3>
@@ -582,11 +612,13 @@ function App() {
 
       {!quizCompleted ? (
         <Quiz
-          onComplete={(determinedType) => {
-            setResidencyType(determinedType);
-            setQuizCompleted(true);
-          }}
-        />
+        onComplete={(determinedType, allAnswers) => {
+          setResidencyType(determinedType);
+          setQuizAnswers(allAnswers); // ✅ capture names, DOB, etc.
+          setQuizCompleted(true);
+        }}
+      />
+      
       ) : (
         <>
           {residencyType === 'above19dependent-nonca' ? (
