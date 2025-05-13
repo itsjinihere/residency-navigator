@@ -456,6 +456,14 @@ function App() {
   </div>
 )}
 
+<details style={{ marginTop: '10px' }}>
+  <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>📘 What is the Residency Determination Date (RDD)?</summary>
+  <p style={{ marginTop: '5px' }}>
+    Your RDD is the deadline by which you must have established California residency. It is usually 1 year before the start of the term you’re applying for. All supporting documents (like your lease or CA ID) must be dated before this date to be valid.
+  </p>
+</details>
+
+
   
         <hr />
         <h3>Upload Supporting Document</h3>

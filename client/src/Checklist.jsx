@@ -221,10 +221,16 @@ const Checklist = ({
     <div>
       <h3>Checklist for {residencyType.charAt(0).toUpperCase() + residencyType.slice(1).replace(/-/g, ' ')} Student</h3>
 
-      <h4>✅ List A (must have at least 1)</h4>
+      <h4 title="List A includes documents that prove physical presence and intent to stay in CA. You must submit at least 1.">
+  ✅ List A (must have at least 1) <span style={{ cursor: 'help' }}>❓</span>
+</h4>
+
       <ul>{listA.map(renderItem)}</ul>
 
-      <h4>📂 List B (choose additional documents)</h4>
+      <h4 title="List B includes supplemental documents that help strengthen your residency case. You must submit at least 3 total from List A + B.">
+  📂 List B (choose additional documents) <span style={{ cursor: 'help' }}>❓</span>
+</h4>
+
       <ul>{listB.map(renderItem)}</ul>
 
       {cleanedResidencyType === 'independent' && petitionYear && (
