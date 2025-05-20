@@ -52,6 +52,16 @@ function Quiz({ onComplete }) {
 
   const visibleQuestions = questions.filter(q => !q.showIf || q.showIf(answers));
   const currentQuestion = visibleQuestions[current];
+  const progress = Math.round(((current + 1) / visibleQuestions.length) * 100);
+
+  const baseButtonStyle = {
+    padding: '10px 20px',
+    borderRadius: '6px',
+    fontWeight: 'bold',
+    border: 'none',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s ease',
+  };
 
   const handleAnswer = (field, value) => {
     const newAnswers = { ...answers, [field]: value };
@@ -100,198 +110,237 @@ function Quiz({ onComplete }) {
 
   if (reviewing) {
     return (
-      <div id="quiz-review" style={{ marginTop: '2rem' }}>
-        <h2>Review Your Answers</h2>
-        <ul>
+      <div style={{ padding: '2rem', backgroundColor: '#ffffffdd', borderRadius: '12px', maxWidth: '700px', margin: '2rem auto' }}>
+        <h2 style={{ color: '#154734', fontSize: '1.75rem', fontWeight: '600', textAlign: 'center', marginBottom: '1.5rem' }}>Review Your Answers</h2>
+  
+        <ul style={{ listStyle: 'none', padding: 0 }}>
           {visibleQuestions.map((q) => {
             const value = answers[q.field];
-            if (q.type === "nameGroup") {
-              return (
-                <li key={q.field} style={{ marginBottom: '1rem' }}>
-                  <strong>{q.question}</strong><br />
-                  {q.subfields.map((sf) => (
-                    <input
-                      key={sf}
-                      type="text"
-                      placeholder={sf.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}
-                      value={answers[sf] || ''}
-                      onChange={(e) =>
-                        setAnswers({ ...answers, [sf]: e.target.value })
-                      }
-                      style={{ margin: '4px 6px 4px 0' }}
-                    />
-                  ))}
-                </li>
-              );
-            }
-
+  
             return (
-              <li key={q.field} style={{ marginBottom: '1rem' }}>
-                <label><strong>{q.question}</strong></label><br />
-                {q.type === "boolean" ? (
-                  <>
+              <li key={q.field} style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontWeight: '600', color: '#154734', marginBottom: '0.5rem' }}>{q.question}</label>
+  
+                {q.type === 'boolean' ? (
+                  <div style={{ display: 'flex', gap: '10px' }}>
                     <button
-                      onClick={() =>
-                        setAnswers({ ...answers, [q.field]: true })
-                      }
+                      onClick={() => setAnswers({ ...answers, [q.field]: true })}
                       style={{
-                        backgroundColor: value === true ? 'green' : '#444',
-                        color: 'white',
-                        border: 'none',
-                        padding: '4px 8px',
-                        marginRight: '6px',
-                        cursor: 'pointer',
-                        borderRadius: '4px',
+                        ...baseButtonStyle,
+                        backgroundColor: value === true ? '#28a745' : '#e0e0e0',
+                        color: value === true ? 'white' : '#333'
                       }}
                     >
                       Yes
                     </button>
                     <button
-                      onClick={() =>
-                        setAnswers({ ...answers, [q.field]: false })
-                      }
+                      onClick={() => setAnswers({ ...answers, [q.field]: false })}
                       style={{
-                        backgroundColor: value === false ? 'red' : '#444',
-                        color: 'white',
-                        border: 'none',
-                        padding: '4px 8px',
-                        cursor: 'pointer',
-                        borderRadius: '4px',
+                        ...baseButtonStyle,
+                        backgroundColor: value === false ? '#dc3545' : '#e0e0e0',
+                        color: value === false ? 'white' : '#333'
                       }}
                     >
                       No
                     </button>
-                  </>
-                ) : q.type === "date" ? (
+                  </div>
+                ) : q.type === 'date' ? (
                   <input
                     type="date"
-                    value={value || ""}
-                    onChange={(e) =>
-                      setAnswers({ ...answers, [q.field]: e.target.value })
-                    }
-                    style={{ padding: '4px' }}
+                    value={value || ''}
+                    onChange={(e) => setAnswers({ ...answers, [q.field]: e.target.value })}
+                    style={{ padding: '8px', width: '100%', borderRadius: '6px', border: '1px solid #ccc' }}
                   />
+                ) : q.type === 'nameGroup' ? (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                    {q.subfields.map((sf) => (
+                      <input
+                        key={sf}
+                        type="text"
+                        value={answers[sf] || ''}
+                        onChange={(e) => setAnswers({ ...answers, [sf]: e.target.value })}
+                        placeholder={sf}
+                        style={{ flex: 1, minWidth: '100px', padding: '8px', borderRadius: '6px', border: '1px solid #ccc' }}
+                      />
+                    ))}
+                  </div>
                 ) : (
                   <input
                     type="text"
                     value={value || ''}
-                    onChange={(e) =>
-                      setAnswers({ ...answers, [q.field]: e.target.value })
-                    }
-                    style={{ padding: '4px', width: '60%' }}
+                    onChange={(e) => setAnswers({ ...answers, [q.field]: e.target.value })}
+                    style={{ padding: '8px', width: '100%', borderRadius: '6px', border: '1px solid #ccc' }}
                   />
                 )}
               </li>
             );
           })}
         </ul>
-        <button onClick={() => setReviewing(false)}>🔙 Go Back</button>
-        <button onClick={() => determineStatus(answers)} style={{ marginLeft: '10px' }}>
-          ✅ Submit
-        </button>
+  
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
+          <button
+            onClick={() => setReviewing(false)}
+            style={{ ...baseButtonStyle, backgroundColor: '#f8f9fa', color: '#154734', border: '1px solid #ccc' }}
+          >
+            🔙 Go Back
+          </button>
+          <button
+            onClick={() => determineStatus(answers)}
+            style={{ ...baseButtonStyle, backgroundColor: '#007bff', color: 'white' }}
+          >
+            ✅ Submit
+          </button>
+        </div>
       </div>
     );
   }
-
+  
   return (
-    <div>
-      <h2>Residency Quiz</h2>
-      <p>{currentQuestion.question}</p>
+    <div style={{
+      backgroundColor: '#ffffffdd',
+      borderRadius: '12px',
+      padding: '2rem',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+      maxWidth: '700px',
+      margin: '2rem auto'
+    }}>
+      <div style={{ fontSize: '2rem', marginBottom: '0.5rem', textAlign: 'center' }}>📝</div>
+      <h2 style={{ color: '#154734', textAlign: 'center', fontSize: '1.75rem', marginBottom: '1rem' }}>Residency Quiz</h2>
 
-      {currentQuestion.type === "boolean" && (
-        <>
-          <button onClick={() => handleAnswer(currentQuestion.field, true)}>Yes</button>
-          <button onClick={() => handleAnswer(currentQuestion.field, false)} style={{ marginLeft: '10px' }}>
-            No
-          </button>
-        </>
-      )}
-
-      {currentQuestion.type === "text" && (
-        <>
-          <input
-            type="text"
-            value={answers[currentQuestion.field] || ""}
-            onChange={(e) =>
-              setAnswers({ ...answers, [currentQuestion.field]: e.target.value })
-            }
-          />
-          <br />
-          <button
-            onClick={() => {
-              if (current < visibleQuestions.length - 1) {
-                setCurrent(current + 1);
-              } else {
-                setReviewing(true);
-              }
-            }}
-            disabled={!answers[currentQuestion.field]}
-          >
-            Next
-          </button>
-        </>
-      )}
-
-      {currentQuestion.type === "date" && (
-        <>
-          <input
-            type="date"
-            value={answers[currentQuestion.field] || ""}
-            onChange={(e) =>
-              setAnswers({ ...answers, [currentQuestion.field]: e.target.value })
-            }
-          />
-          <br />
-          <button
-            onClick={() => {
-              if (current < visibleQuestions.length - 1) {
-                setCurrent(current + 1);
-              } else {
-                setReviewing(true);
-              }
-            }}
-            disabled={!answers[currentQuestion.field]}
-          >
-            Next
-          </button>
-        </>
-      )}
-
-      {currentQuestion.type === "nameGroup" && (
-        <>
-          {currentQuestion.subfields.map((subfield) => (
-            <div key={subfield} style={{ marginBottom: '0.5rem' }}>
-              <label style={{ marginRight: '0.5rem' }}>
-                {subfield.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:
-              </label>
-              <input
-                type="text"
-                value={answers[subfield] || ""}
-                onChange={(e) =>
-                  setAnswers({ ...answers, [subfield]: e.target.value })
-                }
-              />
-            </div>
-          ))}
-          <button
-            onClick={() => {
-              if (current < visibleQuestions.length - 1) {
-                setCurrent(current + 1);
-              } else {
-                setReviewing(true);
-              }
-            }}
-          >
-            Next
-          </button>
-        </>
-      )}
-
-      {current > 0 && (
-        <div style={{ marginTop: '1rem' }}>
-          <button onClick={handleBack}>⬅️ Back</button>
+      {visibleQuestions.length > 1 && (
+        <div style={{ marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#154734' }}>
+            <span>Question {current + 1} of {visibleQuestions.length}</span>
+            <span>{progress}% complete</span>
+          </div>
+          <div style={{
+            height: '12px',
+            backgroundColor: '#e0e0e0',
+            borderRadius: '6px',
+            marginTop: '6px',
+            overflow: 'hidden',
+            boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)'
+          }}>
+            <div
+              style={{
+                width: `${progress}%`,
+                backgroundColor: '#154734',
+                height: '100%',
+                transition: 'width 0.5s ease-in-out'
+              }}
+              title={`${progress}% complete`}
+            ></div>
+          </div>
         </div>
       )}
+
+      <div key={current} style={{ animation: 'fadeIn 0.3s ease-in' }}>
+        <p style={{ color: '#154734', fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
+          {currentQuestion.question}
+        </p>
+
+        {currentQuestion.type === 'boolean' && (
+          <div>
+            <button
+              onClick={() => handleAnswer(currentQuestion.field, true)}
+              style={{
+                ...baseButtonStyle,
+                backgroundColor: answers[currentQuestion.field] === true ? '#28a745' : '#e0e0e0',
+                color: answers[currentQuestion.field] === true ? 'white' : '#333',
+                marginRight: '10px'
+              }}
+            >
+              Yes
+            </button>
+            <button
+              onClick={() => handleAnswer(currentQuestion.field, false)}
+              style={{
+                ...baseButtonStyle,
+                backgroundColor: answers[currentQuestion.field] === false ? '#dc3545' : '#e0e0e0',
+                color: answers[currentQuestion.field] === false ? 'white' : '#333'
+              }}
+            >
+              No
+            </button>
+          </div>
+        )}
+
+        {currentQuestion.type === 'text' && (
+          <>
+            <input
+              type="text"
+              value={answers[currentQuestion.field] || ""}
+              onChange={(e) => setAnswers({ ...answers, [currentQuestion.field]: e.target.value })}
+              style={{ padding: '8px', width: '100%', marginBottom: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
+            />
+            <button
+              onClick={() => current < visibleQuestions.length - 1 ? setCurrent(current + 1) : setReviewing(true)}
+              disabled={!answers[currentQuestion.field]}
+              style={{ ...baseButtonStyle, backgroundColor: '#007bff', color: 'white' }}
+            >
+              Next
+            </button>
+          </>
+        )}
+
+        {currentQuestion.type === 'date' && (
+          <>
+            <input
+              type="date"
+              value={answers[currentQuestion.field] || ""}
+              onChange={(e) => setAnswers({ ...answers, [currentQuestion.field]: e.target.value })}
+              style={{ padding: '8px', marginBottom: '10px', borderRadius: '6px', border: '1px solid #ccc' }}
+            />
+            <button
+              onClick={() => current < visibleQuestions.length - 1 ? setCurrent(current + 1) : setReviewing(true)}
+              disabled={!answers[currentQuestion.field]}
+              style={{ ...baseButtonStyle, backgroundColor: '#007bff', color: 'white' }}
+            >
+              Next
+            </button>
+          </>
+        )}
+
+        {currentQuestion.type === 'nameGroup' && (
+          <>
+            {currentQuestion.subfields.map((subfield) => (
+              <div key={subfield} style={{ marginBottom: '0.75rem' }}>
+                <label style={{ marginRight: '0.5rem', color: '#154734', fontWeight: '500' }}>
+                  {subfield.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:
+                </label>
+                <input
+                  type="text"
+                  value={answers[subfield] || ""}
+                  onChange={(e) => setAnswers({ ...answers, [subfield]: e.target.value })}
+                  style={{ padding: '6px', width: '100%', borderRadius: '6px', border: '1px solid #ccc' }}
+                />
+              </div>
+            ))}
+            <button
+              onClick={() => current < visibleQuestions.length - 1 ? setCurrent(current + 1) : setReviewing(true)}
+              style={{ ...baseButtonStyle, backgroundColor: '#007bff', color: 'white' }}
+            >
+              Next
+            </button>
+          </>
+        )}
+
+        {current > 0 && (
+          <div style={{ marginTop: '1rem' }}>
+            <button
+              onClick={handleBack}
+              style={{
+                ...baseButtonStyle,
+                backgroundColor: '#f8f9fa',
+                color: '#154734',
+                border: '1px solid #ccc'
+              }}
+            >
+              ⬅️ Back
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

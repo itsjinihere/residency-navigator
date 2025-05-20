@@ -3,7 +3,11 @@
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+  background-color: #c1e0c4;
+  color: white;
+  min-height: 100vh;
 }
+
 
 .logo {
   height: 6em;
@@ -52,5 +56,11 @@ html {
 #home {
   scroll-margin-top: 80px; /* Adjust based on navbar height */
 }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 
 

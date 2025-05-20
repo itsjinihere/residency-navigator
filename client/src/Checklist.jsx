@@ -87,34 +87,17 @@ const Checklist = ({
   }
 
   const { listA, listB } = requirements;
-
   const completedListA = listA.filter(item => completedItems.includes(item));
   const completedListB = listB.filter(item => completedItems.includes(item));
   const requiredTaxYears = petitionYear ? getRequiredTaxYears(petitionYear) : [];
   const completedTaxYears = petitionYear ? requiredTaxYears.filter(year => financialDocs.includes(year)) : [];
 
-
   const hasListARequirement = completedListA.length >= 1;
-  // const totalDocumentsUploaded = completedListA.length + completedListB.length;
-  // const enoughDocumentsUploaded = totalDocumentsUploaded >= 3;
-  // const financialDocsComplete = cleanedResidencyType === 'independent'
-  //   ? completedTaxYears.length === requiredTaxYears.length
-  //   : true;
-  // const checklistComplete = hasListARequirement && enoughDocumentsUploaded;
-
-  // Section 1: Residency Docs (List A + List B)
   const totalResidencyDocs = completedListA.length + completedListB.length;
   const residencyDocsComplete = hasListARequirement && totalResidencyDocs >= 3;
-
-  // Section 2: Financial Docs (for independent students)
   const financialDocsComplete = cleanedResidencyType !== 'independent' || completedTaxYears.length === requiredTaxYears.length;
-
-  // Section 3: (optional) RDD date valid? You can skip for now
-
-  // Final checklist complete flag
   const checklistComplete = residencyDocsComplete && financialDocsComplete;
 
-  // Progress tracking
   const requiredResidencyDocs = 3;
   const requiredTaxDocs = 3;
   const totalRequiredDocs = requiredResidencyDocs + requiredTaxDocs;
@@ -129,17 +112,11 @@ const Checklist = ({
     ? Math.round(((residencyDocsCounted + taxDocsCounted) / totalRequiredDocs) * 100)
     : 0;
 
-
-
-
-
-
   useEffect(() => {
     if (onChecklistComplete && petitionYear) {
       onChecklistComplete(checklistComplete);
     }
   }, [checklistComplete, onChecklistComplete, petitionYear]);
-  
 
   const formatToInputDate = (str) => {
     if (!str) return '';
@@ -164,22 +141,26 @@ const Checklist = ({
     };
 
     return (
-      <li key={item} style={{ marginBottom: '0.75rem' }}>
-        {isCompleted ? '✅' : '⬜️'} {item}
+      <div key={item} className="bg-white rounded-md p-3 shadow flex flex-col sm:flex-row sm:items-center sm:justify-between text-[#154734]">
+        <span className="font-medium">
+          {isCompleted ? '✅' : '⬜️'} {item}
+        </span>
         {isCompleted && (
-          <span style={{ marginLeft: '1rem' }}>
+          <span className="text-sm text-gray-400 mt-2 sm:mt-0 sm:ml-4">
             {editingItem === item ? (
-              <>
+              <div className="flex gap-2 items-center">
                 {isRange ? (
                   <>
                     <input
                       type="date"
+                      className="rounded px-2 py-1 text-black"
                       value={formatToInputDate(dateInfo?.start)}
                       onChange={(e) => handleSaveDate('start', new Date(e.target.value).toLocaleDateString('en-US'))}
                     />
-                    to
+                    <span className="text-black">to</span>
                     <input
                       type="date"
+                      className="rounded px-2 py-1 text-black"
                       value={formatToInputDate(dateInfo?.end)}
                       onChange={(e) => handleSaveDate('end', new Date(e.target.value).toLocaleDateString('en-US'))}
                     />
@@ -187,15 +168,16 @@ const Checklist = ({
                 ) : (
                   <input
                     type="date"
+                    className="rounded px-2 py-1 text-black"
                     value={formatToInputDate(dateInfo)}
                     onChange={(e) => handleSaveDate(null, new Date(e.target.value).toLocaleDateString('en-US'))}
                   />
                 )}
-                <button onClick={() => setEditingItem(null)}>✔️</button>
-              </>
+                <button className="text-green-400" onClick={() => setEditingItem(null)}>✔️</button>
+              </div>
             ) : (
               <span
-                style={{ color: 'gray', textDecoration: 'underline', cursor: 'pointer' }}
+                className="underline cursor-pointer hover:text-gray-600"
                 onClick={() => setEditingItem(item)}
               >
                 {isRange
@@ -205,78 +187,61 @@ const Checklist = ({
             )}
           </span>
         )}
-      </li>
+      </div>
     );
   };
 
-  // const totalSections = 2 + (cleanedResidencyType === 'independent' ? 1 : 0);
-  // const completeSections = [
-  //   hasListARequirement && enoughDocumentsUploaded,
-  //   cleanedResidencyType !== 'independent' || financialDocsComplete
-  // ].filter(Boolean).length;
-
-  // const progress = Math.round((completeSections / totalSections) * 100);
-
   return (
-    <div>
-      <h3>Checklist for {residencyType.charAt(0).toUpperCase() + residencyType.slice(1).replace(/-/g, ' ')} Student</h3>
+    <div className="px-4 sm:px-8">
+      <h3 className="text-xl font-semibold text-[#154734] mb-4">
+        Checklist for {residencyType.charAt(0).toUpperCase() + residencyType.slice(1).replace(/-/g, ' ')} Student
+      </h3>
 
-      <h4 title="List A includes documents that prove physical presence and intent to stay in CA. You must submit at least 1.">
-  ✅ List A (must have at least 1) <span style={{ cursor: 'help' }}>❓</span>
-</h4>
+      <div className="bg-white text-[#154734] rounded-xl p-6 mt-4 shadow-lg">
+      <h4 className="text-lg font-medium text-green-700 mt-2">
+          ✅ List A (must have at least 1) <span className="cursor-help">❓</span>
+        </h4>
+        <div className="space-y-4 mt-2">{listA.map(renderItem)}</div>
 
-      <ul>{listA.map(renderItem)}</ul>
+        <h4 className="text-lg font-medium text-green-700 mt-6">
+          📂 List B (choose additional documents) <span className="cursor-help">❓</span>
+        </h4>
+        <div className="space-y-4 mt-2">{listB.map(renderItem)}</div>
 
-      <h4 title="List B includes supplemental documents that help strengthen your residency case. You must submit at least 3 total from List A + B.">
-  📂 List B (choose additional documents) <span style={{ cursor: 'help' }}>❓</span>
-</h4>
-
-      <ul>{listB.map(renderItem)}</ul>
-
-      {cleanedResidencyType === 'independent' && petitionYear && (
-        <>
-          <h4>📄 Financial Independence (Parent Tax Returns)</h4>
-          <ul>
-            {requiredTaxYears.map((year) => (
-              <li key={year}>
-                {financialDocs.includes(year) ? '✅' : '⬜️'} Parent's Tax Return – {year}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-
-      <div style={{ marginTop: '20px' }}>
-      <p title="Progress is based on required residency documents and parent tax returns">
-        <strong>Progress:</strong> {progress}% complete
-      </p>
-
-      <p style={{ fontSize: '0.9rem', color: '#666' }}>
-        {residencyDocsCounted}/3 residency docs • {taxDocsCounted}/3 tax returns
-      </p>
-
-
-        <div style={{
-          height: '10px',
-          width: '100%',
-          backgroundColor: '#eee',
-          borderRadius: '5px',
-          marginBottom: '10px'
-        }}>
-          <div style={{
-            width: `${progress}%`,
-            height: '100%',
-            backgroundColor: checklistComplete ? 'green' : '#007bff',
-            borderRadius: '5px'
-          }} />
-
-        </div>
-
-        {checklistComplete ? (
-          <p style={{ color: 'green', fontWeight: 'bold' }}>✅ Minimum checklist completed!</p>
-        ) : (
-          <p style={{ color: 'red', fontWeight: 'bold' }}>❌ Please upload required documents.</p>
+        {cleanedResidencyType === 'independent' && petitionYear && (
+          <>
+            <h4 className="text-lg font-medium text-green-700 mt-6">📄 Financial Independence (Parent Tax Returns)</h4>
+            <div className="space-y-2 mt-2">
+              {requiredTaxYears.map((year) => (
+                <div key={year} className="bg-white rounded-md p-3 shadow text-[#154734]">
+                  {financialDocs.includes(year) ? '✅' : '⬜️'} Parent's Tax Return – {year}
+                </div>
+              ))}
+            </div>
+          </>
         )}
+
+        <div className="mt-8 space-y-2">
+          <p className="text-sm">
+            <strong>Progress:</strong> {progress}% complete
+          </p>
+          <p className="text-xs text-gray-600">
+            {residencyDocsCounted}/3 residency docs • {taxDocsCounted}/3 tax returns
+          </p>
+          <div className="w-full h-3 bg-gray-300 rounded-full">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${
+                checklistComplete ? 'bg-green-500' : 'bg-blue-500'
+              }`}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className={`font-semibold ${checklistComplete ? 'text-green-600' : 'text-red-600'}`}>
+            {checklistComplete
+              ? '✅ Minimum checklist completed!'
+              : '❌ Please upload required documents.'}
+          </p>
+        </div>
       </div>
     </div>
   );

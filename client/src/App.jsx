@@ -404,7 +404,7 @@ function App() {
     return (
       <>
         <form onSubmit={handleSubmit}>
-          <label>
+          <label className="text-[#154734] font-semibold">
             Select Quarter:
             <select value={quarter} onChange={(e) => setQuarter(e.target.value)} required>
               <option value="">-- Select Quarter --</option>
@@ -417,7 +417,7 @@ function App() {
   
           <br /><br />
   
-          <label>
+          <label className="text-[#154734] font-semibold">
             Select Year:
             <select value={year} onChange={(e) => setYear(e.target.value)} required>
               <option value="">-- Select Year --</option>
@@ -617,7 +617,7 @@ function App() {
   
   
   return (
-    <div className="App">
+    <div className="App min-h-screen bg-[#121212] text-white font-sans">
       <Navbar />
       <Routes>
         <Route

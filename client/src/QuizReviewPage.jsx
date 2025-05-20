@@ -73,137 +73,100 @@ const QuizReviewPage = ({ quizAnswers, setQuizAnswers }) => {
   const visibleQuestions = questions.filter(q => !q.showIf || q.showIf(localAnswers));
 
   if (!quizAnswers || Object.keys(quizAnswers).length === 0) {
-    return <p style={{ padding: '2rem' }}>No quiz answers found. Please complete the quiz first.</p>;
+    return <p className="p-6 text-center">No quiz answers found. Please complete the quiz first.</p>;
   }
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '800px', margin: '2rem auto' }}>
-      <h2>📋 Review Your Answers</h2>
-      <ul style={{ listStyle: 'none', padding: 0 }}>
-        {visibleQuestions.map((q) => (
-          <li key={q.field} style={{ marginBottom: '1.5rem', textAlign: 'left' }}>
-            <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '6px' }} title={q.question}>
-              {q.question}
-            </label>
-
-            {q.type === 'boolean' ? (
-              <>
-                <button
-                  onClick={() => handleChange(q.field, true)}
-                  style={{
-                    backgroundColor: localAnswers[q.field] === true ? 'green' : '#444',
-                    color: 'white',
-                    border: 'none',
-                    padding: '4px 10px',
-                    marginRight: '6px',
-                    cursor: 'pointer',
-                    borderRadius: '4px'
-                  }}
-                >
-                  Yes
-                </button>
-                <button
-                  onClick={() => handleChange(q.field, false)}
-                  style={{
-                    backgroundColor: localAnswers[q.field] === false ? 'red' : '#444',
-                    color: 'white',
-                    border: 'none',
-                    padding: '4px 10px',
-                    cursor: 'pointer',
-                    borderRadius: '4px'
-                  }}
-                >
-                  No
-                </button>
-              </>
-            ) : q.type === 'date' ? (
-              <input
-                type="date"
-                value={localAnswers[q.field] || ''}
-                onChange={(e) => handleChange(q.field, e.target.value)}
-                style={{
-                  padding: '6px',
-                  borderRadius: '4px',
-                  border: '1px solid #ccc'
-                }}
-              />
-            ) : q.type === 'nameGroup' ? (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {q.subfields.map((sf) => (
-                  <input
-                    key={sf}
-                    type="text"
-                    placeholder={sf.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}
-                    value={localAnswers[sf] || ''}
-                    onChange={(e) => handleChange(sf, e.target.value)}
-                    style={{
-                      padding: '6px',
-                      borderRadius: '4px',
-                      border: '1px solid #ccc',
-                      flex: '1 1 30%'
-                    }}
-                  />
-                ))}
-              </div>
-            ) : (
-              <input
-                type="text"
-                value={localAnswers[q.field] || ''}
-                onChange={(e) => handleChange(q.field, e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  border: '1px solid #ccc'
-                }}
-              />
-            )}
-          </li>
-        ))}
-      </ul>
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem' }}>
-        <button
-          onClick={() => navigate('/')}
-          style={{
-            backgroundColor: '#6c757d',
-            color: 'white',
-            padding: '0.5rem 1rem',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer'
-          }}
-        >
-          🏠 Back to Home
-        </button>
-
-        <button
-          onClick={handleSave}
-          style={{
-            backgroundColor: '#007bff',
-            color: 'white',
-            padding: '0.5rem 1rem',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer'
-          }}
-        >
-          ✅ Save Changes
-        </button>
+    <div className="px-4 py-8 min-h-screen bg-[#c1e0c4] text-[#154734]">
+      <div className="max-w-3xl mx-auto text-center mb-6">
+        <h1 className="text-3xl font-bold">🏡 Residency Navigator</h1>
+        <p className="text-md mt-2">
+          Review your answers below and edit anything you need to before submitting.
+        </p>
       </div>
 
-      {showToast && (
-        <div style={{
-          marginTop: '1rem',
-          backgroundColor: '#28a745',
-          color: 'white',
-          padding: '10px',
-          borderRadius: '5px',
-          textAlign: 'center'
-        }}>
-          ✅ Answers updated successfully!
+      <div className="bg-white shadow-xl rounded-lg p-6 w-full max-w-3xl mx-auto text-[#154734]">
+        <h2 className="text-2xl font-semibold text-center mb-6">📋 Review Your Answers</h2>
+
+        <ul className="space-y-6">
+          {visibleQuestions.map((q) => (
+            <li key={q.field}>
+            <div className="w-full flex flex-col items-center text-center">
+              <label className="font-semibold mb-2">{q.question}</label>
+          
+              {q.type === 'boolean' ? (
+                <div
+                className="flex space-x-4 mt-2"
+                style={{ marginLeft: '80%' }}
+              >
+                  <button
+                    onClick={() => handleChange(q.field, true)}
+                    className={`px-4 py-2 rounded-md font-semibold ${localAnswers[q.field] === true ? 'bg-green-600 text-white' : 'bg-gray-300 text-black'}`}
+                  >
+                    Yes
+                  </button>
+                  <button
+                    onClick={() => handleChange(q.field, false)}
+                    className={`px-4 py-2 rounded-md font-semibold ${localAnswers[q.field] === false ? 'bg-red-600 text-white' : 'bg-gray-300 text-black'}`}
+                  >
+                    No
+                  </button>
+                </div>
+              ) : q.type === 'date' ? (
+                <input
+                  type="date"
+                  value={localAnswers[q.field] || ''}
+                  onChange={(e) => handleChange(q.field, e.target.value)}
+                  className="p-2 rounded-md border w-full mt-2"
+                />
+              ) : q.type === 'nameGroup' ? (
+                <div className="flex flex-wrap gap-2 mt-2 justify-center">
+                  {q.subfields.map((sf) => (
+                    <input
+                      key={sf}
+                      type="text"
+                      value={localAnswers[sf] || ''}
+                      onChange={(e) => handleChange(sf, e.target.value)}
+                      placeholder={sf}
+                      className="flex-1 min-w-[100px] p-2 border rounded-md"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  value={localAnswers[q.field] || ''}
+                  onChange={(e) => handleChange(q.field, e.target.value)}
+                  className="p-2 rounded-md border w-full mt-2"
+                />
+              )}
+            </div>
+          </li>
+          
+          ))}
+        </ul>
+
+        <div className="flex justify-between mt-8">
+          <button
+            onClick={() => navigate('/')}
+            className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
+          >
+            🏠 Back to Home
+          </button>
+          <button
+            onClick={handleSave}
+            className="bg-[#007bff] text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          >
+            ✅ Save Changes
+          </button>
         </div>
-      )}
+
+        {showToast && (
+          <div className="mt-4 p-3 bg-green-500 text-white text-center rounded-md">
+            ✅ Answers updated successfully!
+          </div>
+        )}
+      </div>
     </div>
   );
 };
