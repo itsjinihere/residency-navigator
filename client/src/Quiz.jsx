@@ -52,7 +52,7 @@ function Quiz({ onComplete }) {
 
   const visibleQuestions = questions.filter(q => !q.showIf || q.showIf(answers));
   const currentQuestion = visibleQuestions[current];
-  const progress = Math.round(((current + 1) / visibleQuestions.length) * 100);
+  const progress = Math.round((current / visibleQuestions.length) * 100);
 
   const baseButtonStyle = {
     padding: '10px 20px',

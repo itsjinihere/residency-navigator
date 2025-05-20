@@ -3,55 +3,48 @@ import React, { useEffect, useState } from 'react';
 const residencyRequirements = {
   independent: {
     listA: [
-      'CA Driver\'s License or ID',
+      "CA Driver's License or ID",
       'Lease or Rental Agreement',
       'Voter Registration',
       'Car Registration',
-      'State Tax Returns'
+      'State Tax Returns',
     ],
     listB: [
       'Federal Tax Returns',
       'W2 or Pay Stubs',
       'Utility Bill',
-      'Bank Account Statement (CA Address)'
-    ]
+      'Bank Account Statement (CA Address)',
+    ],
   },
   under19: {
     listA: [
-      'Parent\'s CA Driver\'s License',
-      'Parent\'s Lease or Rental Agreement',
-      'Parent\'s State Tax Returns'
+      "Parent's CA Driver's License",
+      "Parent's Lease or Rental Agreement",
+      "Parent's State Tax Returns",
     ],
     listB: [
-      'Parent\'s Utility Bills',
-      'High School Transcripts showing CA address'
-    ]
+      "Parent's Utility Bills",
+      'High School Transcripts showing CA address',
+    ],
   },
   military: {
-    listA: [
-      'Active Duty Military Orders',
-      'Military ID',
-      'Proof of CA Stationing'
-    ],
-    listB: [
-      'Military Spouse or Dependent Documentation',
-      'Utility Bill at CA address'
-    ]
+    listA: ['Active Duty Military Orders', 'Military ID', 'Proof of CA Stationing'],
+    listB: ['Military Spouse or Dependent Documentation', 'Utility Bill at CA address'],
   },
   above19dependentca: {
     listA: [
-      'Parent\'s CA Driver\'s License',
-      'Parent\'s Lease or Rental Agreement',
-      'Parent\'s Voter Registration',
-      'Parent\'s Car Registration'
+      "Parent's CA Driver's License",
+      "Parent's Lease or Rental Agreement",
+      "Parent's Voter Registration",
+      "Parent's Car Registration",
     ],
     listB: [
-      'Parent\'s State Tax Returns',
-      'Parent\'s Utility Bills',
-      'Parent\'s Bank Statement (showing CA address)',
-      'High School or College Transcripts showing CA address'
-    ]
-  }
+      "Parent's State Tax Returns",
+      "Parent's Utility Bills",
+      "Parent's Bank Statement (showing CA address)",
+      'High School or College Transcripts showing CA address',
+    ],
+  },
 };
 
 const getRequiredTaxYears = (petitionYear) => {
@@ -68,10 +61,11 @@ const Checklist = ({
   onChecklistComplete,
   petitionYear,
   financialDocs = [],
-  setFinancialDocs
+  setFinancialDocs,
+  showOnlyTaxDocs = false,
+  showFinancialDocs = true,
 }) => {
   const [editingItem, setEditingItem] = useState(null);
-
   if (!residencyType) return null;
 
   const cleanedResidencyType = residencyType.replace(/-/g, '').toLowerCase();
@@ -87,36 +81,48 @@ const Checklist = ({
   }
 
   const { listA, listB } = requirements;
-  const completedListA = listA.filter(item => completedItems.includes(item));
-  const completedListB = listB.filter(item => completedItems.includes(item));
+  const completedListA = listA.filter((item) => completedItems.includes(item));
+  const completedListB = listB.filter((item) => completedItems.includes(item));
   const requiredTaxYears = petitionYear ? getRequiredTaxYears(petitionYear) : [];
-  const completedTaxYears = petitionYear ? requiredTaxYears.filter(year => financialDocs.includes(year)) : [];
+  const completedTaxYears = petitionYear
+    ? requiredTaxYears.filter((year) => financialDocs.includes(year))
+    : [];
 
   const hasListARequirement = completedListA.length >= 1;
   const totalResidencyDocs = completedListA.length + completedListB.length;
-  const residencyDocsComplete = hasListARequirement && totalResidencyDocs >= 3;
-  const financialDocsComplete = cleanedResidencyType !== 'independent' || completedTaxYears.length === requiredTaxYears.length;
-  const checklistComplete = residencyDocsComplete && financialDocsComplete;
+  const residencyDocsComplete =
+    hasListARequirement && totalResidencyDocs >= 3;
 
-  const requiredResidencyDocs = 3;
-  const requiredTaxDocs = 3;
-  const totalRequiredDocs = requiredResidencyDocs + requiredTaxDocs;
+  const financialDocsComplete =
+    cleanedResidencyType !== 'independent' ||
+    completedTaxYears.length === requiredTaxYears.length;
 
-  const residencyDocsUploaded = completedListA.length + completedListB.length;
-  const residencyDocsCounted = Math.min(residencyDocsUploaded, requiredResidencyDocs);
-
-  const taxDocsUploaded = completedTaxYears.length;
-  const taxDocsCounted = Math.min(taxDocsUploaded, requiredTaxDocs);
-
-  const progress = petitionYear
-    ? Math.round(((residencyDocsCounted + taxDocsCounted) / totalRequiredDocs) * 100)
-    : 0;
-
+    const checklistComplete =
+    (showOnlyTaxDocs && financialDocsComplete) ||
+    (!showOnlyTaxDocs && residencyDocsComplete && (!showFinancialDocs || financialDocsComplete));
+  
   useEffect(() => {
     if (onChecklistComplete && petitionYear) {
       onChecklistComplete(checklistComplete);
     }
   }, [checklistComplete, onChecklistComplete, petitionYear]);
+
+  // Progress logic adapted for step-by-step display
+  const requiredResidencyDocs = 3;
+  const requiredTaxDocs = 3;
+  const residencyDocsCounted = Math.min(totalResidencyDocs, requiredResidencyDocs);
+  const taxDocsCounted = Math.min(completedTaxYears.length, requiredTaxDocs);
+
+  let progress = 0;
+  if (showOnlyTaxDocs) {
+    progress = Math.round((taxDocsCounted / requiredTaxDocs) * 100);
+  } else if (!showFinancialDocs) {
+    progress = Math.round((residencyDocsCounted / requiredResidencyDocs) * 100);
+  } else {
+    progress = Math.round(
+      ((residencyDocsCounted + taxDocsCounted) / (requiredResidencyDocs + requiredTaxDocs)) * 100
+    );
+  }
 
   const formatToInputDate = (str) => {
     if (!str) return '';
@@ -132,16 +138,19 @@ const Checklist = ({
     const isRange = typeof dateInfo === 'object' && dateInfo !== null;
 
     const handleSaveDate = (field, value) => {
-      setDocumentDates(prev => ({
+      setDocumentDates((prev) => ({
         ...prev,
         [item]: isRange
           ? { ...prev[item], [field]: value }
-          : value
+          : value,
       }));
     };
 
     return (
-      <div key={item} className="bg-white rounded-md p-3 shadow flex flex-col sm:flex-row sm:items-center sm:justify-between text-[#154734]">
+      <div
+        key={item}
+        className="bg-white rounded-md p-3 shadow flex flex-col sm:flex-row sm:items-center sm:justify-between text-[#154734]"
+      >
         <span className="font-medium">
           {isCompleted ? '✅' : '⬜️'} {item}
         </span>
@@ -155,14 +164,24 @@ const Checklist = ({
                       type="date"
                       className="rounded px-2 py-1 text-black"
                       value={formatToInputDate(dateInfo?.start)}
-                      onChange={(e) => handleSaveDate('start', new Date(e.target.value).toLocaleDateString('en-US'))}
+                      onChange={(e) =>
+                        handleSaveDate(
+                          'start',
+                          new Date(e.target.value).toLocaleDateString('en-US')
+                        )
+                      }
                     />
                     <span className="text-black">to</span>
                     <input
                       type="date"
                       className="rounded px-2 py-1 text-black"
                       value={formatToInputDate(dateInfo?.end)}
-                      onChange={(e) => handleSaveDate('end', new Date(e.target.value).toLocaleDateString('en-US'))}
+                      onChange={(e) =>
+                        handleSaveDate(
+                          'end',
+                          new Date(e.target.value).toLocaleDateString('en-US')
+                        )
+                      }
                     />
                   </>
                 ) : (
@@ -170,10 +189,17 @@ const Checklist = ({
                     type="date"
                     className="rounded px-2 py-1 text-black"
                     value={formatToInputDate(dateInfo)}
-                    onChange={(e) => handleSaveDate(null, new Date(e.target.value).toLocaleDateString('en-US'))}
+                    onChange={(e) =>
+                      handleSaveDate(
+                        null,
+                        new Date(e.target.value).toLocaleDateString('en-US')
+                      )
+                    }
                   />
                 )}
-                <button className="text-green-400" onClick={() => setEditingItem(null)}>✔️</button>
+                <button className="text-green-400" onClick={() => setEditingItem(null)}>
+                  ✔️
+                </button>
               </div>
             ) : (
               <span
@@ -198,17 +224,21 @@ const Checklist = ({
       </h3>
 
       <div className="bg-white text-[#154734] rounded-xl p-6 mt-4 shadow-lg">
-      <h4 className="text-lg font-medium text-green-700 mt-2">
-          ✅ List A (must have at least 1) <span className="cursor-help">❓</span>
-        </h4>
-        <div className="space-y-4 mt-2">{listA.map(renderItem)}</div>
+        {!showOnlyTaxDocs && (
+          <>
+            <h4 className="text-lg font-medium text-green-700 mt-2">
+              ✅ List A (must have at least 1) <span className="cursor-help">❓</span>
+            </h4>
+            <div className="space-y-4 mt-2">{listA.map(renderItem)}</div>
 
-        <h4 className="text-lg font-medium text-green-700 mt-6">
-          📂 List B (choose additional documents) <span className="cursor-help">❓</span>
-        </h4>
-        <div className="space-y-4 mt-2">{listB.map(renderItem)}</div>
+            <h4 className="text-lg font-medium text-green-700 mt-6">
+              📂 List B (choose additional documents) <span className="cursor-help">❓</span>
+            </h4>
+            <div className="space-y-4 mt-2">{listB.map(renderItem)}</div>
+          </>
+        )}
 
-        {cleanedResidencyType === 'independent' && petitionYear && (
+        {showFinancialDocs && cleanedResidencyType === 'independent' && petitionYear && (
           <>
             <h4 className="text-lg font-medium text-green-700 mt-6">📄 Financial Independence (Parent Tax Returns)</h4>
             <div className="space-y-2 mt-2">
@@ -222,21 +252,26 @@ const Checklist = ({
         )}
 
         <div className="mt-8 space-y-2">
-          <p className="text-sm">
-            <strong>Progress:</strong> {progress}% complete
-          </p>
-          <p className="text-xs text-gray-600">
-            {residencyDocsCounted}/3 residency docs • {taxDocsCounted}/3 tax returns
-          </p>
-          <div className="w-full h-3 bg-gray-300 rounded-full">
-            <div
-              className={`h-full rounded-full transition-all duration-300 ${
-                checklistComplete ? 'bg-green-500' : 'bg-blue-500'
-              }`}
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <p className={`font-semibold ${checklistComplete ? 'text-green-600' : 'text-red-600'}`}>
+        <div className="mb-2">
+  {/* <div className="flex justify-between text-sm text-[#154734] mb-1">
+    <span>Progress</span>
+    <span>{progress}% complete</span>
+  </div> */}
+  <div className="h-3 bg-gray-300 rounded-full overflow-hidden shadow-inner">
+    <div
+      className="h-full bg-green-600 transition-all duration-500 ease-in-out rounded-full"
+      style={{ width: `${progress}%` }}
+    />
+  </div>
+</div>
+
+{/* <p className="text-sm text-center mt-2 font-medium text-[#154734]">{progress}% complete</p> */}
+
+          <p
+            className={`font-semibold ${
+              checklistComplete ? 'text-green-600' : 'text-red-600'
+            }`}
+          >
             {checklistComplete
               ? '✅ Minimum checklist completed!'
               : '❌ Please upload required documents.'}

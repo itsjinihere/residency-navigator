@@ -7,6 +7,9 @@ import QuizReview from './QuizReview';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import QuizReviewPage from './QuizReviewPage';
 import HomePage from './HomePage'; // ✅ import the component you just made
+import ResidencyDocsChecklist from './ResidencyDocsChecklist';
+import TaxDocsChecklist from './TaxDocsChecklist';
+import FileUploadArea from './FileUploadArea';
 
 
 
@@ -99,6 +102,11 @@ function App() {
   const [financialDocs, setFinancialDocs] = useState([]);
   const [quizAnswers, setQuizAnswers] = useState({});
   const [crossCheckMessage, setCrossCheckMessage] = useState('');
+
+  const [checklistStep, setChecklistStep] = useState(1);
+
+ 
+
 
 
 
@@ -401,221 +409,233 @@ function App() {
   };
   
   function renderChecklistAndUpload() {
+    const rdd = getRDDDate(quarter, year);
+    const formattedRDD = rdd
+      ? rdd.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      : 'N/A';
+  
+      const stepProgress = Math.round((checklistStep / 3) * 100);
+      const residencyProgress = Math.min(Math.round((completedDocuments.length / 3) * 100), 100);
+      const taxProgress = Math.min(Math.round((financialDocs.length / 3) * 100), 100);
+      
+  
     return (
-      <>
-        <form onSubmit={handleSubmit}>
-          <label className="text-[#154734] font-semibold">
-            Select Quarter:
-            <select value={quarter} onChange={(e) => setQuarter(e.target.value)} required>
-              <option value="">-- Select Quarter --</option>
-              <option value="Fall">Fall</option>
-              <option value="Winter">Winter</option>
-              <option value="Spring">Spring</option>
-              <option value="Summer">Summer</option>
-            </select>
-          </label>
-  
-          <br /><br />
-  
-          <label className="text-[#154734] font-semibold">
-            Select Year:
-            <select value={year} onChange={(e) => setYear(e.target.value)} required>
-              <option value="">-- Select Year --</option>
-              <option value="2024">2024</option>
-              <option value="2025">2025</option>
-              <option value="2026">2026</option>
-            </select>
-          </label>
-  
-          <br /><br />
-          <button type="submit">Submit</button>
-        </form>
-  
-        <div id="checklist">
-        <Checklist
-          residencyType={residencyType}
-          completedItems={completedDocuments}
-          documentDates={documentDates}
-          setDocumentDates={setDocumentDates}
-          onChecklistComplete={setChecklistComplete}
-          petitionYear={year}
-          financialDocs={financialDocs}
-          setFinancialDocs={setFinancialDocs}
-        />  
+      <div className="py-6">
+        {/* Shared Progress Header */}
+        <div style={{ maxWidth: '700px', margin: '0 auto 1rem', textAlign: 'center' }}>
+          <div style={{ color: '#28a745', fontWeight: '600', fontSize: '1.125rem', marginBottom: '0.5rem' }}>
+            Step {checklistStep} of 3
+          </div>
+          <div style={{
+            height: '12px',
+            backgroundColor: '#e0e0e0',
+            borderRadius: '6px',
+            overflow: 'hidden',
+            boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)',
+            maxWidth: '700px',
+            margin: '0 auto'
+          }}>
+            <div
+              style={{
+                width: `${stepProgress}%`,
+                backgroundColor: '#28a745',
+                height: '100%',
+                transition: 'width 0.5s ease-in-out'
+              }}
+            />
+          </div>
         </div>
   
-  {(rddValidationMessage || crossCheckMessage) && (
-  <div style={{ marginTop: '1rem' }}>
-    {rddValidationMessage && (
-      <p style={{
-        fontWeight: 'bold',
-        color: rddValidationMessage.includes('⚠️') ? 'red' : 'green'
-      }}>
-        {rddValidationMessage}
-      </p>
-    )}
-    {crossCheckMessage && (
-      <p style={{
-        fontWeight: 'bold',
-        color: 'red'
-      }}>
-        {crossCheckMessage}
-      </p>
-    )}
-  </div>
-)}
-
-<details style={{ marginTop: '10px' }}>
-  <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>📘 What is the Residency Determination Date (RDD)?</summary>
-  <p style={{ marginTop: '5px' }}>
-    Your RDD is the deadline by which you must have established California residency. It is usually 1 year before the start of the term you’re applying for. All supporting documents (like your lease or CA ID) must be dated before this date to be valid.
-  </p>
-</details>
-
-
-  
-<div id="upload" style={{ marginTop: '2rem' }}>
-        <hr />
-        <h3>Upload Supporting Document</h3>
-        <input
-        
-  type="file"
-  accept=".pdf,.jpg,.jpeg,.png"
-  onChange={(e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setSelectedFile(file); // store for later upload
-    handleAnalyzeFile(file)
-  }}
-  
-/>
-</div>
-
-{selectedFile && (
-  <>
-    {documentTypes.isLease && (
-      <>
-        <label>Start Date:</label>
-        <input
-          type="date"
-          value={leaseStartDate}
-          onChange={(e) => {
-            //const formatted = new Date(e.target.value).toLocaleDateString('en-US');
-            setLeaseStartDate(e.target.value);
-          }}
-        /><br />
-
-        <label>End Date:</label>
-        <input
-          type="date"
-          value={leaseEndDate}
-          onChange={(e) => {
-            //const formatted = new Date(e.target.value).toLocaleDateString('en-US');
-            setLeaseEndDate(e.target.value);
-          }}
-        /><br />
-      </>
-    )}
-
-{documentTypes.isTaxReturn ? (
-  <>
-    <label>Select tax year:</label>
-    <select
-      value={currentSelectedDate}
-      onChange={(e) => setCurrentSelectedDate(e.target.value)}
-    >
-      <option value="">-- Select tax year --</option>
-      {analysisInfo?.taxYears?.map((year, idx) => (
-        <option key={idx} value={year}>{year}</option>
-      ))}
-    </select>
-  </>
-) : (
-  <>
-    <label>Select document issue date (for checklist):</label>
-    <select
-      value={currentSelectedDate}
-      onChange={(e) => {
-        setCurrentSelectedDate(e.target.value);
-        validateRDDFromExtractedDate(e.target.value);
-      }}
-      disabled={extractedDates.length === 0}
-    >
-      <option value="">-- Select a date --</option>
-      {extractedDates.map((date, idx) => (
-        <option key={idx} value={date}>{date}</option>
-      ))}
-    </select>
-
-    <p style={{ marginTop: '10px' }}>Or manually enter the correct date:</p>
-    <input
-      type="date"
-      onChange={(e) => {
-        const [year, month, day] = e.target.value.split("-");
-        const manual = `${parseInt(month)}/${parseInt(day)}/${year}`;
-        setCurrentSelectedDate(manual);
-        validateRDDFromExtractedDate(manual);
-      }}
-    />
-  </>
-)}
-
-
-    <button
-      onClick={confirmUpload}
-      disabled={
-        !currentSelectedDate ||
-        (documentTypes.isLease && (!leaseStartDate || !leaseEndDate))
-      }
-      style={{
-        marginTop: '10px',
-        backgroundColor: '#007bff',
-        color: 'white',
-        padding: '0.5rem 1rem',
-        border: 'none',
-        borderRadius: '4px',
-        cursor: 'pointer'
-      }}
-    >
-      Upload This Document
-    </button>
-  </>
-)}
-
-        {uploadMessage && (
-          <p style={{
-            marginTop: '10px',
-            fontWeight: 'bold',
-            color: uploadMessage.startsWith('✅') ? 'green' : 'red'
+        {/* STEP 1 */}
+        {checklistStep === 1 && (
+          <div style={{
+            backgroundColor: '#ffffffdd',
+            borderRadius: '12px',
+            padding: '2rem',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            maxWidth: '700px',
+            margin: '2rem auto',
+            color: '#154734'
           }}>
-            {uploadMessage}
-          </p>
-        )}
-  
-        {analysisInfo && (
-          <div style={{ marginTop: '1rem' }}>
-            <h4>📄 Document Analysis</h4>
-            <p><strong>Pages:</strong> {analysisInfo.pageCount}</p>
-            <p><strong>Keywords found:</strong> {analysisInfo.foundKeywords.join(', ') || 'None'}</p>
-            <p><strong>Preview:</strong></p>
-            <div style={{
-              backgroundColor: '#f7f7f7',
-              padding: '10px',
-              borderRadius: '5px',
-              border: '1px solid #ddd',
-              maxHeight: '200px',
-              overflowY: 'auto'
-            }}>
-              <pre>{analysisInfo.textSnippet}</pre>
-            </div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>📅 Select the Quarter and Year</h3>
+            <form onSubmit={(e) => { e.preventDefault(); setChecklistStep(2); }}>
+              <label style={{ display: 'block', marginBottom: '1rem' }}>
+                Quarter:
+                <select value={quarter} onChange={(e) => setQuarter(e.target.value)} style={{ marginLeft: '0.5rem', padding: '0.5rem', borderRadius: '4px' }}>
+                  <option value="">-- Select Quarter --</option>
+                  <option value="Fall">Fall</option>
+                  <option value="Winter">Winter</option>
+                  <option value="Spring">Spring</option>
+                  <option value="Summer">Summer</option>
+                </select>
+              </label>
+              <label style={{ display: 'block', marginBottom: '1rem' }}>
+                Year:
+                <select value={year} onChange={(e) => setYear(e.target.value)} style={{ marginLeft: '0.5rem', padding: '0.5rem', borderRadius: '4px' }}>
+                  <option value="">-- Select Year --</option>
+                  <option value="2024">2024</option>
+                  <option value="2025">2025</option>
+                  <option value="2026">2026</option>
+                </select>
+              </label>
+              <button type="submit" style={{ backgroundColor: '#28a745', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px' }}>
+                Next
+              </button>
+            </form>
           </div>
         )}
-      </>
+  
+        {/* STEP 2 */}
+        {checklistStep === 2 && (
+          <div style={{
+            backgroundColor: '#ffffffdd',
+            borderRadius: '12px',
+            padding: '2rem',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            maxWidth: '700px',
+            margin: '2rem auto',
+            color: '#154734'
+          }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>📁 Upload Your Residency Documents</h3>
+            <p style={{ marginBottom: '1rem' }}>
+              Please upload <strong>at least 1 document from List A</strong> and <strong>at least 2 other documents from either List A or B</strong>. You must upload a minimum of 3 Documents total.<strong> </strong> <br />
+              Make sure the issue dates are before your RDD of <strong>{formattedRDD}</strong>.
+            </p>
+
+               {/* Mini progress bar for residency */}
+    <div style={{ marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#154734' }}>
+        <span>{completedDocuments.length}/3 residency docs</span>
+        <span>{residencyProgress}% complete</span>
+      </div>
+      <div style={{
+        height: '12px',
+        backgroundColor: '#e0e0e0',
+        borderRadius: '6px',
+        marginTop: '6px',
+        overflow: 'hidden',
+        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)'
+      }}>
+        <div
+          style={{
+            width: `${residencyProgress}%`,
+            backgroundColor: '#154734',
+            height: '100%',
+            transition: 'width 0.5s ease-in-out'
+          }}
+          title={`${residencyProgress}% complete`}
+        ></div>
+      </div>
+    </div>
+
+            <ResidencyDocsChecklist
+              residencyType={residencyType}
+              completedItems={completedDocuments}
+              documentDates={documentDates}
+              setDocumentDates={setDocumentDates}
+              petitionYear={year}
+              onChecklistComplete={(done) => setChecklistComplete(done)}
+            />
+            <FileUploadArea
+              selectedFile={selectedFile}
+              setSelectedFile={setSelectedFile}
+              confirmUpload={confirmUpload}
+              handleAnalyzeFile={handleAnalyzeFile}
+              extractedDates={extractedDates}
+              currentSelectedDate={currentSelectedDate}
+              setCurrentSelectedDate={setCurrentSelectedDate}
+              leaseStartDate={leaseStartDate}
+              leaseEndDate={leaseEndDate}
+              setLeaseStartDate={setLeaseStartDate}
+              setLeaseEndDate={setLeaseEndDate}
+              uploadMessage={uploadMessage}
+              rddValidationMessage={rddValidationMessage}
+              documentTypes={documentTypes}
+              validateRDDFromExtractedDate={validateRDDFromExtractedDate}
+              analysisInfo={analysisInfo}
+            />
+            {checklistComplete && (
+              <div style={{ textAlign: 'right', marginTop: '1rem' }}>
+                <button onClick={() => setChecklistStep(3)} style={{ backgroundColor: '#28a745', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px' }}>
+                  Next
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+  
+        {/* STEP 3 */}
+        {checklistStep === 3 && (
+          <div style={{
+            backgroundColor: '#ffffffdd',
+            borderRadius: '12px',
+            padding: '2rem',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            maxWidth: '700px',
+            margin: '2rem auto',
+            color: '#154734'
+          }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>💵 Upload Parent Tax Returns</h3>
+            <p style={{ marginBottom: '1rem' }}>
+              Now it's time to upload your parent's tax returns to prove financial independence.
+            </p>
+
+            {/* Mini progress bar for tax docs */}
+    <div style={{ marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#154734' }}>
+        <span>{financialDocs.length}/3 tax returns</span>
+        <span>{taxProgress}% complete</span>
+      </div>
+      <div style={{
+        height: '12px',
+        backgroundColor: '#e0e0e0',
+        borderRadius: '6px',
+        marginTop: '6px',
+        overflow: 'hidden',
+        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)'
+      }}>
+        <div
+          style={{
+            width: `${taxProgress}%`,
+            backgroundColor: '#154734',
+            height: '100%',
+            transition: 'width 0.5s ease-in-out'
+          }}
+          title={`${taxProgress}% complete`}
+        ></div>
+      </div>
+    </div>
+
+            <TaxDocsChecklist
+              petitionYear={year}
+              residencyType={residencyType}
+              financialDocs={financialDocs}
+              setFinancialDocs={setFinancialDocs}
+            />
+            <FileUploadArea
+              selectedFile={selectedFile}
+              setSelectedFile={setSelectedFile}
+              confirmUpload={confirmUpload}
+              handleAnalyzeFile={handleAnalyzeFile}
+              extractedDates={extractedDates}
+              currentSelectedDate={currentSelectedDate}
+              setCurrentSelectedDate={setCurrentSelectedDate}
+              leaseStartDate={leaseStartDate}
+              leaseEndDate={leaseEndDate}
+              setLeaseStartDate={setLeaseStartDate}
+              setLeaseEndDate={setLeaseEndDate}
+              uploadMessage={uploadMessage}
+              rddValidationMessage={rddValidationMessage}
+              documentTypes={documentTypes}
+              validateRDDFromExtractedDate={validateRDDFromExtractedDate}
+              analysisInfo={analysisInfo}
+            />
+          </div>
+        )}
+      </div>
     );
   }
-  
-  
+    
   return (
     <div className="App min-h-screen bg-[#121212] text-white font-sans">
       <Navbar />
