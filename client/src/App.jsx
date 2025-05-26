@@ -458,6 +458,11 @@ function App() {
             color: '#154734'
           }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>📅 Select the Quarter and Year</h3>
+            {/* Description below the heading */}
+    <p style={{ marginBottom: '1.5rem', color: '#154734', fontSize: '0.95rem' }}>
+      Choose the quarter that you're seeking to reclassify as a California resident for tuition purposes.
+    </p>
+
             <form onSubmit={(e) => { e.preventDefault(); setChecklistStep(2); }}>
               <label style={{ display: 'block', marginBottom: '1rem' }}>
                 Quarter:
@@ -498,7 +503,7 @@ function App() {
           }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>📁 Upload Your Residency Documents</h3>
             <p style={{ marginBottom: '1rem' }}>
-              Please upload <strong>at least 1 document from List A</strong> and <strong>at least 2 other documents from either List A or B</strong>. You must upload a minimum of 3 Documents total.<strong> </strong> <br />
+              Please upload <strong>at least 1 document from List A</strong> and <strong>at least 2 other documents from either List A or B</strong>. You must upload a minimum of 3 documents total.<strong> </strong> <br />
               Make sure the issue dates are before your RDD of <strong>{formattedRDD}</strong>.
             </p>
 
@@ -554,13 +559,36 @@ function App() {
               validateRDDFromExtractedDate={validateRDDFromExtractedDate}
               analysisInfo={analysisInfo}
             />
-            {checklistComplete && (
-              <div style={{ textAlign: 'right', marginTop: '1rem' }}>
-                <button onClick={() => setChecklistStep(3)} style={{ backgroundColor: '#28a745', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px' }}>
-                  Next
-                </button>
-              </div>
-            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.5rem' }}>
+  <button
+    onClick={() => setChecklistStep(1)}
+    style={{
+      backgroundColor: '#ccc',
+      color: '#154734',
+      padding: '0.5rem 1rem',
+      borderRadius: '6px',
+      fontWeight: 'bold',
+    }}
+  >
+    ← Back
+  </button>
+
+  {checklistComplete && (
+    <button
+      onClick={() => setChecklistStep(3)}
+      style={{
+        backgroundColor: '#28a745',
+        color: 'white',
+        padding: '0.5rem 1rem',
+        borderRadius: '6px',
+        fontWeight: 'bold',
+      }}
+    >
+      Next →
+    </button>
+  )}
+</div>
+
           </div>
         )}
   
@@ -630,7 +658,22 @@ function App() {
               validateRDDFromExtractedDate={validateRDDFromExtractedDate}
               analysisInfo={analysisInfo}
             />
-          </div>
+              {/* ← Back Button */}
+    <div style={{ marginTop: '1.5rem', textAlign: 'left' }}>
+      <button
+        onClick={() => setChecklistStep(2)}
+        style={{
+          backgroundColor: '#ccc',
+          color: '#154734',
+          padding: '0.5rem 1rem',
+          borderRadius: '6px',
+          fontWeight: 'bold',
+        }}
+      >
+        ← Back
+      </button>
+    </div>
+  </div>
         )}
       </div>
     );
