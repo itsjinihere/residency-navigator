@@ -70,6 +70,51 @@ const getNameMatchScore = (target, first, last) => {
   return name.includes(normalize(first)) && name.includes(normalize(last));
 };
 
+function getTotalCoveredDays(ranges, rdd) {
+  if (!ranges.length || !rdd) return 0;
+
+  const rddStart = new Date(rdd);
+  const rddEnd = new Date(rdd);
+  rddEnd.setFullYear(rddEnd.getFullYear() + 1);
+
+  const clippedRanges = ranges
+    .map(({ start, end }) => {
+      const docStart = new Date(start);
+      const docEnd = new Date(end);
+
+      const clippedStart = docStart < rddStart ? rddStart : docStart;
+      const clippedEnd = docEnd > rddEnd ? rddEnd : docEnd;
+
+      if (clippedStart > clippedEnd) return null; // No overlap
+
+      return { start: clippedStart, end: clippedEnd };
+    })
+    .filter(Boolean) // remove nulls
+    .sort((a, b) => a.start - b.start);
+
+  // Merge overlapping ranges
+  const merged = [];
+  for (const range of clippedRanges) {
+    if (!merged.length) {
+      merged.push(range);
+    } else {
+      const last = merged[merged.length - 1];
+      if (range.start <= last.end) {
+        last.end = new Date(Math.max(last.end, range.end));
+      } else {
+        merged.push(range);
+      }
+    }
+  }
+
+  return merged.reduce((sum, { start, end }) => {
+    const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    return sum + days;
+  }, 0);
+}
+
+
+
 
 
 function App() {
@@ -104,6 +149,10 @@ function App() {
   const [crossCheckMessage, setCrossCheckMessage] = useState('');
 
   const [checklistStep, setChecklistStep] = useState(1);
+  const [physicalPresenceRanges, setPhysicalPresenceRanges] = useState([]);
+  const [showPhysicalDates, setShowPhysicalDates] = useState(false);
+
+
 
  
 
@@ -209,6 +258,18 @@ function App() {
 
   const confirmUpload = () => {
     if (!selectedFile || !analysisInfo) return;
+    // If it's Step 4 and a physical presence doc, add the range
+if (checklistStep === 4 && leaseStartDate && leaseEndDate) {
+  const newRange = { start: leaseStartDate, end: leaseEndDate };
+const alreadyExists = physicalPresenceRanges.some(
+  r => r.start === newRange.start && r.end === newRange.end
+);
+if (!alreadyExists) {
+  setPhysicalPresenceRanges(prev => [...prev, newRange]);
+}
+
+}
+
   
     let matchedDocs = matchUploadedDocument(
       analysisInfo.textSnippet,
@@ -414,7 +475,15 @@ function App() {
       ? rdd.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
       : 'N/A';
   
-      const stepProgress = Math.round((checklistStep / 3) * 100);
+      const nextYearRDD = rdd
+  ? new Date(rdd.getFullYear() + 1, rdd.getMonth(), rdd.getDate()).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    })
+  : 'N/A';
+
+      const stepProgress = Math.round((checklistStep / 4) * 100);
       const residencyProgress = Math.min(Math.round((completedDocuments.length / 3) * 100), 100);
       const taxProgress = Math.min(Math.round((financialDocs.length / 3) * 100), 100);
       
@@ -424,7 +493,7 @@ function App() {
         {/* Shared Progress Header */}
         <div style={{ maxWidth: '700px', margin: '0 auto 1rem', textAlign: 'center' }}>
           <div style={{ color: '#28a745', fontWeight: '600', fontSize: '1.125rem', marginBottom: '0.5rem' }}>
-            Step {checklistStep} of 3
+            Step {checklistStep} of 4
           </div>
           <div style={{
             height: '12px',
@@ -659,9 +728,142 @@ function App() {
               analysisInfo={analysisInfo}
             />
               {/* ← Back Button */}
-    <div style={{ marginTop: '1.5rem', textAlign: 'left' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.5rem' }}>
+  <button
+    onClick={() => setChecklistStep(2)}
+    style={{
+      backgroundColor: '#ccc',
+      color: '#154734',
+      padding: '0.5rem 1rem',
+      borderRadius: '6px',
+      fontWeight: 'bold',
+    }}
+  >
+    ← Back
+  </button>
+
+  {/* Only show next button if 3 tax docs uploaded */}
+  {financialDocs.length >= 3 && (
+    <button
+      onClick={() => setChecklistStep(4)}
+      style={{
+        backgroundColor: '#28a745',
+        color: 'white',
+        padding: '0.5rem 1rem',
+        borderRadius: '6px',
+        fontWeight: 'bold',
+      }}
+    >
+      Next →
+    </button>
+  )}
+</div>
+
+  </div>
+        )}
+      {/* STEP 4 */}
+{checklistStep === 4 && (
+  <div style={{
+    backgroundColor: '#ffffffdd',
+    borderRadius: '12px',
+    padding: '2rem',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+    maxWidth: '700px',
+    margin: '2rem auto',
+    color: '#154734'
+  }}>
+    <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+      📍 Physical Presence in California
+    </h3>
+
+    <p style={{ marginBottom: '1rem' }}>
+      You must provide documents showing you have lived in California continuously from <strong>{formattedRDD}</strong> to <strong>{nextYearRDD}</strong>.
+    </p>
+
+    {/* File Picker */}
+    <input
+      type="file"
+      onChange={(e) => {
+        setSelectedFile(e.target.files[0]);
+        setShowPhysicalDates(true);
+      }}
+      className="mb-3"
+    />
+
+    {/* Show date pickers only after file is selected */}
+    {showPhysicalDates && (
+      <>
+        <label>Start Date:</label>
+        <input
+          type="date"
+          onChange={(e) => setLeaseStartDate(e.target.value)}
+          value={leaseStartDate}
+          className="rounded px-2 py-1 text-black mb-2"
+        />
+        <label>End Date:</label>
+        <input
+          type="date"
+          onChange={(e) => setLeaseEndDate(e.target.value)}
+          value={leaseEndDate}
+          className="rounded px-2 py-1 text-black mb-2"
+        />
+        <button
+          onClick={confirmUpload}
+          style={{ backgroundColor: '#154734', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px', marginBottom: '1rem' }}
+        >
+          📤 Upload
+        </button>
+      </>
+    )}
+
+    {rddValidationMessage && (
+      <p style={{ color: rddValidationMessage.includes("⚠️") ? 'red' : 'green' }}>
+        {rddValidationMessage}
+      </p>
+    )}
+    {uploadMessage && (
+      <p style={{ color: uploadMessage.includes("❌") ? 'red' : 'green' }}>
+        {uploadMessage}
+      </p>
+    )}
+
+    <div style={{ marginBottom: '1rem' }}>
+      <strong>Uploaded Ranges:</strong>
+      <ul>
+        {physicalPresenceRanges.map((r, i) => (
+          <li key={i}>{r.start} to {r.end}</li>
+        ))}
+      </ul>
+    </div>
+
+    {/* Progress bar */}
+    <div style={{ marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+      <span>{getTotalCoveredDays(physicalPresenceRanges, rdd)} / 365 days covered</span>
+      <span>{Math.min(Math.round((getTotalCoveredDays(physicalPresenceRanges, rdd) / 365) * 100), 100)}% complete</span>
+      </div>
+      <div style={{
+        height: '12px',
+        backgroundColor: '#e0e0e0',
+        borderRadius: '6px',
+        marginTop: '6px',
+        overflow: 'hidden',
+        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)'
+      }}>
+        <div style={{
+
+width: `${Math.min((getTotalCoveredDays(physicalPresenceRanges, rdd) / 365) * 100, 100)}%`,
+backgroundColor: '#154734',
+          height: '100%',
+          transition: 'width 0.5s ease-in-out'
+        }} />
+      </div>
+    </div>
+
+    {/* Back Button */}
+    <div style={{ marginTop: '1rem' }}>
       <button
-        onClick={() => setChecklistStep(2)}
+        onClick={() => setChecklistStep(3)}
         style={{
           backgroundColor: '#ccc',
           color: '#154734',
@@ -674,11 +876,13 @@ function App() {
       </button>
     </div>
   </div>
-        )}
-      </div>
+)}
+</div>
     );
   }
-    
+
+
+  
   return (
     <div className="App min-h-screen bg-[#121212] text-white font-sans">
       <Navbar />
