@@ -118,6 +118,9 @@ function getTotalCoveredDays(ranges, rdd) {
 
 
 function App() {
+
+  const navigate = useNavigate();
+
   const [status, setStatus] = useState(null);
   const [residencyType, setResidencyType] = useState('');
   const [quarter, setQuarter] = useState('');
@@ -483,7 +486,7 @@ if (!alreadyExists) {
     })
   : 'N/A';
 
-      const stepProgress = Math.round((checklistStep / 4) * 100);
+      const stepProgress = Math.round((checklistStep / 5) * 100);
       const residencyProgress = Math.min(Math.round((completedDocuments.length / 3) * 100), 100);
       const taxProgress = Math.min(Math.round((financialDocs.length / 3) * 100), 100);
       
@@ -493,7 +496,7 @@ if (!alreadyExists) {
         {/* Shared Progress Header */}
         <div style={{ maxWidth: '700px', margin: '0 auto 1rem', textAlign: 'center' }}>
           <div style={{ color: '#28a745', fontWeight: '600', fontSize: '1.125rem', marginBottom: '0.5rem' }}>
-            Step {checklistStep} of 4
+            Step {checklistStep} of 5
           </div>
           <div style={{
             height: '12px',
@@ -874,9 +877,86 @@ backgroundColor: '#154734',
       >
         ← Back
       </button>
+      {/* Show Next button ONLY when 365+ days are covered */}
+{getTotalCoveredDays(physicalPresenceRanges, rdd) >= 365 && (
+  <div style={{ marginTop: '1rem', textAlign: 'right' }}>
+    <button
+      onClick={() => setChecklistStep(5)}
+      style={{
+        backgroundColor: '#28a745',
+        color: 'white',
+        padding: '0.5rem 1rem',
+        borderRadius: '6px',
+        fontWeight: 'bold',
+      }}
+    >
+      Next →
+    </button>
+  </div>
+)}
+
     </div>
   </div>
 )}
+{checklistStep === 5 && (
+  <div style={{
+    backgroundColor: '#ffffffdd',
+    borderRadius: '12px',
+    padding: '2rem',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+    maxWidth: '700px',
+    margin: '2rem auto',
+    color: '#154734',
+    textAlign: 'center'
+  }}>
+    <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>🎉 You're All Done!</h3>
+    <p style={{ fontSize: '1.1rem' }}>
+      You’ve completed all 4 steps for the residency reclassification process.
+    </p>
+    <p style={{ marginTop: '1rem' }}>
+      Your documents have been uploaded and analyzed, and you have successfully provided proof of California residency and physical presence.
+    </p>
+    <p style={{ marginTop: '1rem', fontWeight: 'bold' }}>
+      ✅ Congratulations!
+    </p>
+    <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+  <button
+    onClick={() => setChecklistStep(4)}
+    style={{
+      backgroundColor: '#ccc',
+      color: '#154734',
+      padding: '0.5rem 1.25rem',
+      borderRadius: '6px',
+      fontWeight: 'bold',
+    }}
+  >
+    ← Back to Step 4
+  </button>
+
+  <button
+  onClick={() => {
+    setChecklistStep(1);
+    setQuizCompleted(false);  // This makes HomePage render the Quiz
+    setQuizAnswers({});       // Optional: clear previous quiz data
+  }}
+  style={{
+    backgroundColor: '#28a745',
+    color: 'white',
+    padding: '0.5rem 1.25rem',
+    borderRadius: '6px',
+    fontWeight: 'bold',
+  }}
+>
+  Return to Home
+</button>
+
+
+
+</div>
+
+  </div>
+)}
+
 </div>
     );
   }
@@ -902,6 +982,16 @@ backgroundColor: '#154734',
             />
           }
         />
+        <Route path="/quiz" element={
+    <Quiz
+      residencyType={residencyType}
+      setResidencyType={setResidencyType}
+      quizAnswers={quizAnswers}
+      setQuizAnswers={setQuizAnswers}
+      setQuizCompleted={setQuizCompleted}
+    />
+  } />
+
         <Route
           path="/review"
           element={<QuizReviewPage quizAnswers={quizAnswers} setQuizAnswers={setQuizAnswers} />} />

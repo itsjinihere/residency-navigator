@@ -15,7 +15,7 @@
   padding: 0 2rem; /* match your #root padding */
   display: flex;
   flex-wrap: wrap;           /* Allows wrapping on smaller screens */
-  gap: 2rem;                 /* More breathing room between links */
+  gap: 15rem;                 /* More breathing room between links */
   align-items: center;
   justify-content: center;
 }
