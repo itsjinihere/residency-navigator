@@ -28,8 +28,10 @@ const residencyRequirements = {
     ],
   },
   military: {
-    listA: ['Active Duty Military Orders', 'Military ID', 'Proof of CA Stationing'],
-    listB: ['Military Spouse or Dependent Documentation', 'Utility Bill at CA address'],
+    listA: ['Active Duty Military Orders', 'Military ID', 'Proof of CA Stationing', 'DD-214 (Discharge Papers)',
+    'LES (Leave and Earnings Statement)'],
+    listB: ['Military Spouse or Dependent Documentation', 'Utility Bill at CA address', 'Certificate of Legal Residence',
+    'VA Benefits Letter with CA address'],
   },
   above19dependentca: {
     listA: [
@@ -91,7 +93,10 @@ const Checklist = ({
   const hasListARequirement = completedListA.length >= 1;
   const totalResidencyDocs = completedListA.length + completedListB.length;
   const residencyDocsComplete =
-    hasListARequirement && totalResidencyDocs >= 3;
+  cleanedResidencyType === 'military'
+    ? completedListA.length >= 1 // military needs only 1 List A
+    : hasListARequirement && totalResidencyDocs >= 3; // all others need 3 total
+
 
   const financialDocsComplete =
     cleanedResidencyType !== 'independent' ||
@@ -110,7 +115,10 @@ const Checklist = ({
   // Progress logic adapted for step-by-step display
   const requiredResidencyDocs = 3;
   const requiredTaxDocs = 3;
-  const residencyDocsCounted = Math.min(totalResidencyDocs, requiredResidencyDocs);
+  const residencyDocsCounted = cleanedResidencyType === 'military'
+  ? Math.min(completedListA.length, 1)
+  : Math.min(totalResidencyDocs, requiredResidencyDocs);
+
   const taxDocsCounted = Math.min(completedTaxYears.length, requiredTaxDocs);
 
   let progress = 0;

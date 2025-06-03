@@ -36,7 +36,45 @@ const keywordMappings = {
   'Parent\'s Utility Bills': ['parent utility bill'],
   'High School Transcripts showing CA address': ['high school transcript'],
   'Active Duty Military Orders': ['military orders', 'active duty'],
-  'Military ID': ['military id'],
+  'Military ID': [
+  'military id',
+  'uniformed services',
+  'department of defense',
+  'dod id',
+  'geneva conventions identification card',
+  'geneva conventions',
+  'rank lt',
+  'affiliation: uniformed services',
+  'agency/department: air force',
+  'air force',
+  'affiliation',
+  'agency/department',
+  'id card (dd form 2)',
+  'dd form 2',
+  'armed forces of the united states',
+  'armed forces id'
+],
+'LES (Leave and Earnings Statement)': [
+  'leave and earnings statement',
+  'les-djms',
+  'defense finance and accounting service',
+  'dfas form 702',
+  'meal deduction',
+  'base pay',
+  'bah',
+  'bas',
+  'entitlements',
+  'deductions',
+  'summary',
+  'sgli coverage amount',
+  'jpmorgan chase bank, na',
+  'dfas.mil',
+  'pay data',
+  'federal taxes',
+  'bah',
+  'bas',
+  'mid-month-pay'
+],
   'Proof of CA Stationing': ['ca stationing proof'],
   'Military Spouse or Dependent Documentation': ['military dependent'],
   'Utility Bill at CA address': ['utility bill'],
@@ -49,6 +87,10 @@ const keywordMappings = {
 ],
 
 };
+
+const isMilitaryStudent = (residencyType) =>
+  residencyType?.toLowerCase().replace(/-/g, '') === 'military';
+
 
 // Helper to get RDD date
 const getRDDDate = (quarter, year) => {
@@ -238,8 +280,11 @@ function App() {
   
       // Update document types
       const isLease = filename.includes("lease") || text.includes("lease");
-      const isTaxReturn = ['form 1040', 'irs', 'tax return'].some(kw => text.includes(kw));
-
+      const isLikely1040 = ['form 1040', 'irs form 1040', 'u.s. individual income tax return'].some(kw => text.includes(kw));
+      const isNotLES = !['leave and earnings statement', 'dfas', 'les-djms'].some(kw => text.includes(kw));
+      
+      const isTaxReturn = isLikely1040 && isNotLES;
+      
       setDocumentTypes({
         isLease,
         isGeneralResidency: true,
@@ -486,18 +531,27 @@ if (!alreadyExists) {
     })
   : 'N/A';
 
-      const stepProgress = Math.round((checklistStep / 5) * 100);
-      const residencyProgress = Math.min(Math.round((completedDocuments.length / 3) * 100), 100);
-      const taxProgress = Math.min(Math.round((financialDocs.length / 3) * 100), 100);
+  const totalSteps = isMilitaryStudent(residencyType) ? 2 : 5;
+const displayStepNumber = isMilitaryStudent(residencyType)
+  ? checklistStep === 5 ? 3 : checklistStep
+  : checklistStep;
+const stepProgress = Math.round((displayStepNumber / (isMilitaryStudent(residencyType) ? 3 : totalSteps)) * 100);
+
+  
+  const residencyDocTarget = isMilitaryStudent(residencyType) ? 1 : 3;
+  const residencyProgress = Math.min(Math.round((completedDocuments.length / residencyDocTarget) * 100), 100);
+        const taxProgress = Math.min(Math.round((financialDocs.length / 3) * 100), 100);
       
   
     return (
       <div className="py-6">
         {/* Shared Progress Header */}
         <div style={{ maxWidth: '700px', margin: '0 auto 1rem', textAlign: 'center' }}>
-          <div style={{ color: '#28a745', fontWeight: '600', fontSize: '1.125rem', marginBottom: '0.5rem' }}>
-            Step {checklistStep} of 5
-          </div>
+        <div style={{ color: '#28a745', fontWeight: '600', fontSize: '1.125rem', marginBottom: '0.5rem' }}>
+  Step {displayStepNumber} of {isMilitaryStudent(residencyType) ? 3 : totalSteps}
+</div>
+
+
           <div style={{
             height: '12px',
             backgroundColor: '#e0e0e0',
@@ -575,14 +629,24 @@ if (!alreadyExists) {
           }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>📁 Upload Your Residency Documents</h3>
             <p style={{ marginBottom: '1rem' }}>
-              Please upload <strong>at least 1 document from List A</strong> and <strong>at least 2 other documents from either List A or B</strong>. You must upload a minimum of 3 documents total.<strong> </strong> <br />
-              Make sure the issue dates are before your RDD of <strong>{formattedRDD}</strong>.
-            </p>
+  {isMilitaryStudent(residencyType) ? (
+    <>As a military-affiliated student, you only need to upload <strong>one document from List A</strong>.</>
+  ) : (
+    <>
+      Please upload <strong>at least 1 document from List A</strong> and <strong>at least 2 other documents from either List A or B</strong>. You must upload a minimum of 3 documents total.
+    </>
+  )} <br />
+  Make sure the issue dates are before your RDD of <strong>{formattedRDD}</strong>.
+</p>
+
 
                {/* Mini progress bar for residency */}
     <div style={{ marginBottom: '1.5rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#154734' }}>
-        <span>{completedDocuments.length}/3 residency docs</span>
+      <span>
+  {completedDocuments.length}/{isMilitaryStudent(residencyType) ? 1 : 3} residency doc{isMilitaryStudent(residencyType) ? '' : 's'}
+</span>
+
         <span>{residencyProgress}% complete</span>
       </div>
       <div style={{
@@ -646,26 +710,27 @@ if (!alreadyExists) {
   </button>
 
   {checklistComplete && (
-    <button
-      onClick={() => setChecklistStep(3)}
-      style={{
-        backgroundColor: '#28a745',
-        color: 'white',
-        padding: '0.5rem 1rem',
-        borderRadius: '6px',
-        fontWeight: 'bold',
-      }}
-    >
-      Next →
-    </button>
-  )}
+  <button
+    onClick={() => setChecklistStep(isMilitaryStudent(residencyType) ? 5 : 3)}
+    style={{
+      backgroundColor: '#28a745',
+      color: 'white',
+      padding: '0.5rem 1rem',
+      borderRadius: '6px',
+      fontWeight: 'bold',
+    }}
+  >
+    Next →
+  </button>
+)}
+
 </div>
 
           </div>
         )}
   
         {/* STEP 3 */}
-        {checklistStep === 3 && (
+        {checklistStep === 3 && !isMilitaryStudent(residencyType) && (
           <div style={{
             backgroundColor: '#ffffffdd',
             borderRadius: '12px',
@@ -765,7 +830,7 @@ if (!alreadyExists) {
   </div>
         )}
       {/* STEP 4 */}
-{checklistStep === 4 && (
+      {checklistStep === 4 && !isMilitaryStudent(residencyType) && (
   <div style={{
     backgroundColor: '#ffffffdd',
     borderRadius: '12px',
@@ -910,28 +975,43 @@ backgroundColor: '#154734',
     textAlign: 'center'
   }}>
     <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>🎉 You're All Done!</h3>
+    {isMilitaryStudent(residencyType) ? (
+  <>
+    <p style={{ fontSize: '1.1rem' }}>
+      As a military-affiliated student, you qualify for in-state tuition with fewer requirements.
+    </p>
+    <p style={{ marginTop: '1rem' }}>
+      Your uploaded documentation confirms your military status and California connection. Thank you for your service!
+    </p>
+  </>
+) : (
+  <>
     <p style={{ fontSize: '1.1rem' }}>
       You’ve completed all 4 steps for the residency reclassification process.
     </p>
     <p style={{ marginTop: '1rem' }}>
       Your documents have been uploaded and analyzed, and you have successfully provided proof of California residency and physical presence.
     </p>
+  </>
+)}
+
     <p style={{ marginTop: '1rem', fontWeight: 'bold' }}>
       ✅ Congratulations!
     </p>
     <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-  <button
-    onClick={() => setChecklistStep(4)}
-    style={{
-      backgroundColor: '#ccc',
-      color: '#154734',
-      padding: '0.5rem 1.25rem',
-      borderRadius: '6px',
-      fontWeight: 'bold',
-    }}
-  >
-    ← Back to Step 4
-  </button>
+    <button
+  onClick={() => setChecklistStep(isMilitaryStudent(residencyType) ? 2 : 4)}
+  style={{
+    backgroundColor: '#ccc',
+    color: '#154734',
+    padding: '0.5rem 1.25rem',
+    borderRadius: '6px',
+    fontWeight: 'bold',
+  }}
+>
+  ← Back to Step {isMilitaryStudent(residencyType) ? 2 : 4}
+</button>
+
 
   <button
   onClick={() => {
