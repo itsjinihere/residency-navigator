@@ -8,7 +8,7 @@ const Navbar = () => {
       <Link to="/review">📋 Quiz Answers</Link>
       <a href="#checklist">✅ Checklist</a>
       <a href="#upload">📄 Upload Document</a>
-      <a href="#status">📡 Status</a>
+      <Link to="/status">📡 Status</Link>
     </nav>
   );
 };

@@ -10,7 +10,7 @@ import HomePage from './HomePage'; // ✅ import the component you just made
 import ResidencyDocsChecklist from './ResidencyDocsChecklist';
 import TaxDocsChecklist from './TaxDocsChecklist';
 import FileUploadArea from './FileUploadArea';
-
+import StatusPage from './StatusPage';
 
 
 const keywordMappings = {
@@ -626,6 +626,19 @@ if (!alreadyExists) {
               <button type="submit" style={{ backgroundColor: '#28a745', color: 'white', padding: '0.5rem 1rem', borderRadius: '6px' }}>
                 Next
               </button>
+              <button
+                type="button"
+                onClick={() => navigate('/status')}
+                style={{
+                  marginLeft: '0.5rem',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '6px'
+                }}
+              >
+                View Status
+              </button>
             </form>
           </div>
         )}
@@ -1101,6 +1114,9 @@ backgroundColor: '#154734',
         <Route
           path="/review"
           element={<QuizReviewPage quizAnswers={quizAnswers} setQuizAnswers={setQuizAnswers} />} />
+        <Route
+          path="/status"
+          element={<StatusPage residencyType={residencyType} />} />  
       </Routes>
     </div>
   );

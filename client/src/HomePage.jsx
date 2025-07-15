@@ -2,6 +2,8 @@
 import Quiz from './Quiz';
 import Checklist from './Checklist';
 import QuizReview from './QuizReview';
+import { useNavigate } from 'react-router-dom';
+
 
 const HomePage = ({
   status,
@@ -13,6 +15,7 @@ const HomePage = ({
   setQuizCompleted,
   renderChecklistAndUpload
 }) => {
+  const navigate = useNavigate();
   return (
 
     
