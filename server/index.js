@@ -52,6 +52,7 @@ app.post('/api/submit', (req, res) => {
   if (residencyType === 'under19') {
     eligibility = Number(year) >= 2024;
   } else if (residencyType === 'independent') {
+  } else if (residencyType === 'independent' || residencyType === 'independent-over24') {
     eligibility = ['fall', 'winter'].includes(quarter.toLowerCase());
   } else if (residencyType === 'military') {
     eligibility = true;

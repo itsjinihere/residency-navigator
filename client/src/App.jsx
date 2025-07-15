@@ -531,12 +531,26 @@ if (!alreadyExists) {
     })
   : 'N/A';
 
-  const totalSteps = isMilitaryStudent(residencyType) ? 2 : 5;
-const displayStepNumber = isMilitaryStudent(residencyType)
-  ? checklistStep === 5 ? 3 : checklistStep
-  : checklistStep;
-const stepProgress = Math.round((displayStepNumber / (isMilitaryStudent(residencyType) ? 3 : totalSteps)) * 100);
+  const totalSteps = isMilitaryStudent(residencyType)
+    ? 2
+    : residencyType === 'independent-over24'
+    ? 4
+    : 5;
 
+  const displayStepNumber = isMilitaryStudent(residencyType)
+    ? checklistStep === 5
+      ? 3
+      : checklistStep
+    : residencyType === 'independent-over24'
+    ? checklistStep > 3
+      ? checklistStep - 1
+      : checklistStep
+    : checklistStep;
+
+  const stepProgress = Math.round(
+    (displayStepNumber / (isMilitaryStudent(residencyType) ? 3 : totalSteps)) *
+      100
+  );
   
   const residencyDocTarget = isMilitaryStudent(residencyType) ? 1 : 3;
   const residencyProgress = Math.min(Math.round((completedDocuments.length / residencyDocTarget) * 100), 100);
@@ -711,17 +725,25 @@ const stepProgress = Math.round((displayStepNumber / (isMilitaryStudent(residenc
 
   {checklistComplete && (
   <button
-    onClick={() => setChecklistStep(isMilitaryStudent(residencyType) ? 5 : 3)}
-    style={{
-      backgroundColor: '#28a745',
-      color: 'white',
-      padding: '0.5rem 1rem',
-      borderRadius: '6px',
-      fontWeight: 'bold',
-    }}
-  >
-    Next →
-  </button>
+  onClick={() =>
+    setChecklistStep(
+      isMilitaryStudent(residencyType)
+        ? 5
+        : residencyType === 'independent-over24'
+        ? 4
+        : 3
+    )
+  }
+  style={{
+    backgroundColor: '#28a745',
+    color: 'white',
+    padding: '0.5rem 1rem',
+    borderRadius: '6px',
+    fontWeight: 'bold',
+  }}
+>
+  Next →
+</button>
 )}
 
 </div>
@@ -730,7 +752,9 @@ const stepProgress = Math.round((displayStepNumber / (isMilitaryStudent(residenc
         )}
   
         {/* STEP 3 */}
-        {checklistStep === 3 && !isMilitaryStudent(residencyType) && (
+        {checklistStep === 3 &&
+          !isMilitaryStudent(residencyType) &&
+          residencyType !== 'independent-over24' && (
           <div style={{
             backgroundColor: '#ffffffdd',
             borderRadius: '12px',
@@ -931,7 +955,9 @@ backgroundColor: '#154734',
     {/* Back Button */}
     <div style={{ marginTop: '1rem' }}>
       <button
-        onClick={() => setChecklistStep(3)}
+        onClick={() =>
+          setChecklistStep(residencyType === 'independent-over24' ? 2 : 3)
+        }
         style={{
           backgroundColor: '#ccc',
           color: '#154734',

@@ -16,6 +16,21 @@ const residencyRequirements = {
       'Bank Account Statement (CA Address)',
     ],
   },
+  independentover24: {
+    listA: [
+      "CA Driver's License or ID",
+      'Lease or Rental Agreement',
+      'Voter Registration',
+      'Car Registration',
+      'State Tax Returns',
+    ],
+    listB: [
+      'Federal Tax Returns',
+      'W2 or Pay Stubs',
+      'Utility Bill',
+      'Bank Account Statement (CA Address)',
+    ],
+  },
   under19: {
     listA: [
       "Parent's CA Driver's License",

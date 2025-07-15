@@ -2,6 +2,18 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+function getAge(dobStr) {
+  if (!dobStr) return 0;
+  const today = new Date();
+  const dob = new Date(dobStr);
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+    age--;
+  }
+  return age;
+}
+
 const questions = [
   {
     question: "What is your full legal name?",
@@ -9,24 +21,7 @@ const questions = [
     type: "nameGroup",
     subfields: ["firstName", "middleName", "lastName"]
   },
-  {
-    question: "What is your parent or guardian’s name?",
-    field: "parent1Name",
-    type: "nameGroup",
-    subfields: ["parent1First", "parent1Middle", "parent1Last"]
-  },
-  {
-    question: "Would you like to enter a second parent or guardian?",
-    field: "addSecondParent",
-    type: "boolean"
-  },
-  {
-    question: "Second parent or guardian's name:",
-    field: "parent2Name",
-    type: "nameGroup",
-    subfields: ["parent2First", "parent2Middle", "parent2Last"],
-    showIf: (a) => a.addSecondParent
-  },
+
   {
     question: "What is your date of birth?",
     field: "dob",
@@ -34,12 +29,41 @@ const questions = [
   },
   { question: "Are you a U.S. military veteran or active-duty service member?", field: "isMilitary", type: "boolean" },
   { question: "Please specify your base or current station", field: "militaryBase", type: "text", showIf: (a) => a.isMilitary },
-  { question: "Will you be 24 years or older by the start of the reclassification quarter?", field: "isOver24", type: "boolean", showIf: (a) => !a.isMilitary },
-  { question: "Are you married?", field: "isMarried", type: "boolean", showIf: (a) => !a.isMilitary },
-  { question: "Do you have dependents (children or others) you financially support?", field: "hasDependents", type: "boolean", showIf: (a) => !a.isMilitary },
-  { question: "Have you been financially self-supporting for the past year?", field: "isSelfSupporting", type: "boolean", showIf: (a) => !a.isMilitary },
-  { question: "Are you currently or were you previously in foster care after the age of 13?", field: "wasInFosterCare", type: "boolean", showIf: (a) => !a.isMilitary },
-  { question: "Will your parent(s)/guardian(s) claim you as a dependent on their taxes?", field: "claimedByParents", type: "boolean", showIf: (a) => !a.isMilitary },
+  {
+    question: "Will you be 24 years or older by the start of the reclassification quarter?",
+    field: "isOver24",
+    type: "boolean",
+    showIf: (a) => !a.isMilitary && getAge(a.dob) < 24
+  },
+  
+  { question: "Are you married?", field: "isMarried", type: "boolean", showIf: (a) => !a.isMilitary && a.isOver24 === false },
+  { question: "Do you have dependents (children or others) you financially support?", field: "hasDependents", type: "boolean", showIf: (a) => !a.isMilitary && a.isOver24 === false },
+  { question: "Have you been financially self-supporting for the past year?", field: "isSelfSupporting", type: "boolean", showIf: (a) => !a.isMilitary && a.isOver24 === false },
+  { question: "Are you currently or were you previously in foster care after the age of 13?", field: "wasInFosterCare", type: "boolean", showIf: (a) => !a.isMilitary && a.isOver24 === false },
+  { question: "Will your parent(s)/guardian(s) claim you as a dependent on their taxes?", field: "claimedByParents", type: "boolean", showIf: (a) => !a.isMilitary && a.isOver24 === false },
+
+
+  {
+    question: "What is your parent or guardian’s name?",
+    field: "parent1Name",
+    type: "nameGroup",
+    subfields: ["parent1First", "parent1Middle", "parent1Last"],
+    showIf: (a) => !a.isMilitary && a.isOver24 === false
+  },
+  {
+    question: "Would you like to enter a second parent or guardian?",
+    field: "addSecondParent",
+    type: "boolean",
+    showIf: (a) => !a.isMilitary && a.isOver24 === false
+  },
+  {
+    question: "Second parent or guardian's name:",
+    field: "parent2Name",
+    type: "nameGroup",
+    subfields: ["parent2First", "parent2Middle", "parent2Last"],
+    showIf: (a) => a.addSecondParent && !a.isMilitary && a.isOver24 === false
+  },
+  
   { question: "Are your parent(s)/guardian(s) California residents?", field: "parentsInCA", type: "boolean", showIf: (a) => !a.isMilitary },
   { question: "Have you lived continuously in California for at least one year?", field: "livedInCA", type: "boolean", showIf: (a) => !a.isMilitary },
   { question: "Do you have a California Driver’s License or State ID?", field: "hasCAID", type: "boolean", showIf: (a) => !a.isMilitary },
