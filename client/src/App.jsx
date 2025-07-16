@@ -197,6 +197,61 @@ function App() {
   const [physicalPresenceRanges, setPhysicalPresenceRanges] = useState([]);
   const [showPhysicalDates, setShowPhysicalDates] = useState(false);
 
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [currentFilePath, setCurrentFilePath] = useState('');
+
+  const generateEmailText = () => {
+    if (residencyType !== 'independent') return '';
+    const fullName = quizAnswers.fullName || `${quizAnswers.firstName || ''} ${quizAnswers.lastName || ''}`.trim();
+    const rdd = getRDDDate(quarter, year);
+    const formattedRDD = rdd
+      ? rdd.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      : '';
+    let presenceStart = '';
+    if (physicalPresenceRanges.length) {
+      presenceStart = physicalPresenceRanges.reduce(
+        (min, r) => (r.start < min ? r.start : min),
+        physicalPresenceRanges[0].start
+      );
+      presenceStart = new Date(presenceStart).toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    }
+    const docList = Object.entries(documentDates)
+      .map(([doc, date]) => {
+        let d = date;
+        if (typeof date === 'object') d = date.start || date.single;
+        const f = d ? new Date(d).toLocaleDateString('en-US') : 'N/A';
+        return `- ${doc} (${f})`;
+      })
+      .join('\n');
+    const rddYear = rdd ? rdd.getFullYear() : 0;
+    const taxYears = rddYear ? `${rddYear - 2}, ${rddYear - 1} and ${rddYear}` : '';
+
+    return (
+      `Dear Cal Poly Admissions Office,\n\n` +
+      `My name is ${fullName}, and I am submitting my petition for reclassification to California resident status for ${quarter} ${year}. ` +
+      `I am writing to respectfully request in-state tuition classification on the basis of having met all three required criteria:\n\n` +
+      `1. Intent to remain in California\n2. Financial independence\n3. Physical presence in California\n\n` +
+      `Physical Presence in California:\n\n` +
+      `I have lived continuously in California since ${presenceStart}, and I have remained physically present in the state for more than one year prior to the Residence Determination Date of ${formattedRDD}.\n\n` +
+      `Intent to Remain in California:\n\n` +
+      `To satisfy the intent requirement, I have provided documentation from both List A and List B, as required:\n\n` +
+      `${docList}\n\n` +
+      `These documents demonstrate my long-term presence and ties to the state of California.\n\n` +
+      `Financial Independence:\n\n` +
+      `I meet the requirements for financial independence under Title 5 §41905.5:\n\n` +
+      `I have not been claimed as a dependent by my parents since 2022\n` +
+      `I have not received more than $750 in financial assistance from them in any calendar year since 2022\n` +
+      `I have not lived in their home for more than six weeks in any calendar year since 2022\n\n` +
+      `I have uploaded Page 1 of my parents’ federal tax returns for ${taxYears}.\n\n` +
+      `Thank you very much for your time and consideration. Please feel free to contact me if any additional documentation or clarification is needed.\n\n` +
+      `Warm regards,\n\n${fullName}`
+    );
+  };
+
 
 
  
@@ -264,7 +319,10 @@ function App() {
   
       const uploadData = await uploadRes.json();
       setUploadMessage(`✅ ${uploadData.filename} uploaded successfully (${Math.round(uploadData.size / 1024)} KB)`);
+      setCurrentFilePath(uploadData.path);
+
   
+      
       const analyzeRes = await fetch('http://localhost:3000/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -389,6 +447,8 @@ if (!alreadyExists) {
     } else {
       setCrossCheckMessage('');
     }
+
+    setUploadedFiles(prev => [...prev, { name: selectedFile.name, path: currentFilePath }]);
     
     
 
@@ -398,6 +458,7 @@ if (!alreadyExists) {
     setCurrentSelectedDate('');
     setLeaseStartDate('');
     setLeaseEndDate('');
+    setCurrentFilePath('');
     setDocumentTypes({ isLease: false, isGeneralResidency: false });
   };
   
@@ -516,6 +577,31 @@ if (!alreadyExists) {
       setLeaseValidationMessage(`⚠️ Your lease does NOT cover your RDD (${formattedRDD}). Please upload another document.`);
     }
   };
+
+
+  const exportPacket = async () => {
+    const emailText = generateEmailText();
+    try {
+      const res = await fetch('http://localhost:3000/api/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emailText })
+      });
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'residency_packet.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Export error:', err);
+    }
+  };
+  
+
   
   function renderChecklistAndUpload() {
     const rdd = getRDDDate(quarter, year);
@@ -535,7 +621,7 @@ if (!alreadyExists) {
     ? 2
     : residencyType === 'independent-over24'
     ? 4
-    : 5;
+    : 6;
 
   const displayStepNumber = isMilitaryStudent(residencyType)
     ? checklistStep === 5
@@ -999,6 +1085,8 @@ backgroundColor: '#154734',
   </div>
 )}
 
+
+
     </div>
   </div>
 )}
@@ -1069,10 +1157,65 @@ backgroundColor: '#154734',
   Return to Home
 </button>
 
+<button
+    onClick={() => setChecklistStep(6)}
+    style={{
+      backgroundColor: '#154734',
+      color: 'white',
+      padding: '0.5rem 1.25rem',
+      borderRadius: '6px',
+      fontWeight: 'bold',
+    }}
+  >
+    Next →
+  </button>
+
 
 
 </div>
 
+  </div>
+)}
+
+{checklistStep === 6 && (
+  <div style={{
+    backgroundColor: '#ffffffdd',
+    borderRadius: '12px',
+    padding: '2rem',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+    maxWidth: '700px',
+    margin: '2rem auto',
+    color: '#154734',
+    textAlign: 'center'
+  }}>
+    <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>Export PDF Packet</h3>
+    <p style={{ marginBottom: '1rem' }}>Download a PDF containing your uploaded documents along with a personalized email.</p>
+    <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '1rem' }}>
+      <button
+        onClick={() => setChecklistStep(5)}
+        style={{
+          backgroundColor: '#ccc',
+          color: '#154734',
+          padding: '0.5rem 1rem',
+          borderRadius: '6px',
+          fontWeight: 'bold',
+        }}
+      >
+        ← Back
+      </button>
+      <button
+        onClick={exportPacket}
+        style={{
+          backgroundColor: '#28a745',
+          color: 'white',
+          padding: '0.5rem 1.25rem',
+          borderRadius: '6px',
+          fontWeight: 'bold',
+        }}
+      >
+        Download PDF
+      </button>
+    </div>
   </div>
 )}
 

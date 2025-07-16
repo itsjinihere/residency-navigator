@@ -4,7 +4,9 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const pdfParse = require('pdf-parse');
-const Tesseract = require('tesseract.js'); // 👈 ADD THIS
+const Tesseract = require('tesseract.js'); 
+const { PDFDocument, StandardFonts } = require('pdf-lib');
+
 
 const app = express();
 const PORT = 3000;
@@ -151,6 +153,84 @@ app.post('/api/analyze', async (req, res) => {
   } catch (err) {
     console.error('Document analysis error:', err);
     res.status(500).json({ message: 'Error analyzing document' });
+  }
+});
+
+// Merge all uploaded documents into a single PDF with a cover email
+app.post('/api/export', async (req, res) => {
+  const { emailText = '' } = req.body;
+  const uploadsDir = path.join(__dirname, 'uploads');
+
+  try {
+    const pdfDoc = await PDFDocument.create();
+
+    // Add email text as first page
+    const page = pdfDoc.addPage();
+    const { width, height } = page.getSize();
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontSize = 12;
+    const lineHeight = fontSize + 4;
+    const maxWidth = width - 100; // 50 padding on each side
+
+    const lines = emailText.split('\n');
+    let y = height - 50;
+
+    lines.forEach(line => {
+      const words = line.split(' ');
+      let currentLine = '';
+      words.forEach(word => {
+        const testLine = currentLine + word + ' ';
+        const textWidth = font.widthOfTextAtSize(testLine, fontSize);
+
+        if (textWidth > maxWidth) {
+          page.drawText(currentLine, { x: 50, y, size: fontSize, font });
+          currentLine = word + ' ';
+          y -= lineHeight;
+
+          if (y < 50) { // Create new page if text exceeds page height
+            y = height - 50;
+            page = pdfDoc.addPage();
+          }
+        } else {
+          currentLine = testLine;
+        }
+      });
+
+      if (currentLine.trim()) {
+        page.drawText(currentLine.trim(), { x: 50, y, size: fontSize, font });
+        y -= lineHeight;
+        if (y < 50) {
+          y = height - 50;
+          page = pdfDoc.addPage();
+        }
+      }
+    });
+
+    // Append all uploaded documents
+    const files = fs.readdirSync(uploadsDir).map(f => path.join(uploadsDir, f));
+
+    for (const filePath of files) {
+      const ext = path.extname(filePath).toLowerCase();
+      const buffer = fs.readFileSync(filePath);
+
+      if (ext === '.pdf') {
+        const donor = await PDFDocument.load(buffer);
+        const copied = await pdfDoc.copyPages(donor, donor.getPageIndices());
+        copied.forEach(p => pdfDoc.addPage(p));
+      } else if (['.png', '.jpg', '.jpeg'].includes(ext)) {
+        const img = ext === '.png' ? await pdfDoc.embedPng(buffer) : await pdfDoc.embedJpg(buffer);
+        const imgPage = pdfDoc.addPage([img.width, img.height]);
+        imgPage.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+      }
+    }
+
+    const pdfBytes = await pdfDoc.save();
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="residency_packet.pdf"');
+    return res.send(Buffer.from(pdfBytes));
+  } catch (err) {
+    console.error('PDF export error:', err);
+    return res.status(500).json({ message: 'Error creating PDF packet' });
   }
 });
 
