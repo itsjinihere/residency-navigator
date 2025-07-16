@@ -975,7 +975,10 @@ if (!alreadyExists) {
     <input
       type="file"
       onChange={(e) => {
-        setSelectedFile(e.target.files[0]);
+        const file = e.target.files[0];
+        if (!file) return;
+        setSelectedFile(file);
+        handleAnalyzeFile(file);
         setShowPhysicalDates(true);
       }}
       className="mb-3"
