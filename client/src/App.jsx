@@ -28,15 +28,39 @@ const keywordMappings = {
   'Voter Registration': ['voter registration', 'political', 'political party', 'party', 'preference'],
   'Car Registration': ['vehicle registration', 'car registration'],
   'State Tax Returns': ['state tax return'],
-  'Federal Tax Returns': ['federal tax return'],
+  'Federal Tax Returns': ['federal tax return', 'tax return', 'IRS'],
   'W2 or Pay Stubs': ['w2', 'pay stub'],
   'Utility Bill': ['utility bill', 'electric bill', 'gas bill'],
   'Bank Account Statement (CA Address)': ['bank statement', 'bank', 'chase'],
-  'Parent\'s CA Driver\'s License': ['parent driver license', 'parent id card'],
-  'Parent\'s Lease or Rental Agreement': ['parent lease', 'parent rental'],
-  'Parent\'s State Tax Returns': ['parent state tax return'],
+  'Parent\'s CA Driver\'s License': [
+    'parent driver license',
+    'parent id card',
+    'driver license',
+    "driver's license",
+    'id card',
+    'identification card',
+    'california id',
+    'state id'
+  ],
+  'Parent\'s Lease or Rental Agreement': ['parent lease', 'parent rental', 'lease'],
+  'Parent\'s Voter Registration': [
+    'voter registration',
+    'voter id',
+    'voter identification card',
+    'political',
+    'political party',
+    'party',
+    'preference'
+  ],
+  'Parent\'s Car Registration': ['vehicle registration', 'car registration'],
+  'Parent\'s State Tax Returns': ['parent state tax return', 'tax return', 'tax'],
   'Parent\'s Utility Bills': ['parent utility bill'],
-  'High School Transcripts showing CA address': ['high school transcript'],
+  "Parent's Bank Statement (CA Address)": ['bank statement', 'bank', 'chase'],
+  'High School or College Transcripts showing CA address': [
+    'transcript',
+    'college transcript',
+    'high school transcript'
+  ],
   'Active Duty Military Orders': ['military orders', 'active duty'],
   'Military ID': [
   'military id',
@@ -89,6 +113,16 @@ const keywordMappings = {
 ],
 
 };
+const parentFlowDocs = [
+  "Parent's CA Driver's License",
+  "Parent's Lease or Rental Agreement",
+  "Parent's Voter Registration",
+  "Parent's Car Registration",
+  "Parent's State Tax Returns",
+  "Parent's Utility Bills",
+  "Parent's Bank Statement (showing CA address)",
+  "High School or College Transcripts showing CA address"
+];
 
 const isMilitaryStudent = (residencyType) =>
   residencyType?.toLowerCase().replace(/-/g, '') === 'military';
@@ -509,7 +543,11 @@ if (!alreadyExists) {
     const newDates = { ...documentDates };
   
   
-    for (const [docName, keywords] of Object.entries(keywordMappings)) {
+    const entries = Object.entries(keywordMappings).filter(([doc]) =>
+      residencyType === 'above19dependent-ca' ? parentFlowDocs.includes(doc) : true
+    );
+
+    for (const [docName, keywords] of entries) {
       for (const keyword of keywords) {
         if (lowerText.includes(keyword)) {
           newMatches.push(docName);
@@ -707,7 +745,7 @@ if (!alreadyExists) {
         {/* STEP 1 */}
         {checklistStep === 1 && (
           <div style={{
-            backgroundColor: '#ffffffdd',
+            backgroundColor: '#ffffff',
             borderRadius: '12px',
             padding: '2rem',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
@@ -773,6 +811,12 @@ if (!alreadyExists) {
             color: '#154734'
           }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '1rem' }}>📁 Upload Your Residency Documents</h3>
+            {residencyType === 'above19dependent-ca' && (
+              <div style={{ marginBottom: '1rem', fontWeight: 'bold', color: '#b45309' }}>
+                ⚠️ Eligibility Depends on Parent's Residency<br />
+                Please upload documents that show your parents’ California residency (e.g., lease, ID, tax returns).
+              </div>
+            )}
             <p style={{ marginBottom: '1rem' }}>
   {isMilitaryStudent(residencyType) ? (
     <>As a military-affiliated student, you only need to upload <strong>one document from List A</strong>.</>

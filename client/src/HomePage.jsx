@@ -88,9 +88,8 @@ const HomePage = ({
             )}
 
             {residencyType === 'above19dependent-ca' && (
-              <div className="bg-[#1e1e1e] p-6 rounded-xl shadow-lg space-y-4">
-                <h2 className="text-2xl font-semibold text-yellow-400">⚠️ Eligibility Depends on Parent's Residency</h2>
-                <p>Please upload documents that show your parents’ California residency (e.g., lease, ID, tax returns).</p>
+              <div className="bg-[#c1e0c4] p-6 rounded-xl shadow-lg space-y-4">
+                
                 {renderChecklistAndUpload()}
               </div>
             )}
