@@ -210,8 +210,19 @@ function App() {
   const [currentFilePath, setCurrentFilePath] = useState('');
 
   const generateEmailText = () => {
-    if (residencyType !== 'independent') return '';
+    if (residencyType !== 'independent' && residencyType !== 'military') return '';
     const fullName = quizAnswers.fullName || `${quizAnswers.firstName || ''} ${quizAnswers.lastName || ''}`.trim();
+
+    if (residencyType === 'military') {
+      const base = quizAnswers.militaryBase || 'my current duty station';
+      return (
+        `Dear Cal Poly Admissions Office,\n\n` +
+        `My name is ${fullName}, and I am requesting in-state tuition classification based on my military status. ` +
+        `I am currently stationed at ${base} and have included documentation confirming my service and connection to California.\n\n` +
+        `Thank you for your consideration.\n\n` +
+        `Respectfully,\n\n${fullName}`
+      );
+    }
     const rdd = getRDDDate(quarter, year);
     const formattedRDD = rdd
       ? rdd.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
@@ -637,7 +648,7 @@ if (!alreadyExists) {
   : 'N/A';
 
   const totalSteps = isMilitaryStudent(residencyType)
-    ? 2
+    ? 4
     : residencyType === 'independent-over24'
     ? 4
     : 6;
@@ -645,6 +656,8 @@ if (!alreadyExists) {
   const displayStepNumber = isMilitaryStudent(residencyType)
     ? checklistStep === 5
       ? 3
+      : checklistStep === 6
+      ? 4
       : checklistStep
     : residencyType === 'independent-over24'
     ? checklistStep > 3
@@ -653,7 +666,7 @@ if (!alreadyExists) {
     : checklistStep;
 
   const stepProgress = Math.round(
-    (displayStepNumber / (isMilitaryStudent(residencyType) ? 3 : totalSteps)) *
+    (displayStepNumber / (isMilitaryStudent(residencyType) ? 4 : totalSteps)) *
       100
   );
   
@@ -667,7 +680,7 @@ if (!alreadyExists) {
         {/* Shared Progress Header */}
         <div style={{ maxWidth: '700px', margin: '0 auto 1rem', textAlign: 'center' }}>
         <div style={{ color: '#28a745', fontWeight: '600', fontSize: '1.125rem', marginBottom: '0.5rem' }}>
-  Step {displayStepNumber} of {isMilitaryStudent(residencyType) ? 3 : totalSteps}
+        Step {displayStepNumber} of {isMilitaryStudent(residencyType) ? 4 : totalSteps}
 </div>
 
 
