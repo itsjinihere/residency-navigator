@@ -6,13 +6,23 @@ const fs = require('fs');
 const pdfParse = require('pdf-parse');
 const Tesseract = require('tesseract.js'); 
 const { PDFDocument, StandardFonts } = require('pdf-lib');
-
+const mongoose = require('mongoose');
+const authRoutes = require('./routes/auth'); // <- new route
 
 const app = express();
 const PORT = 3000;
 
 app.use(cors());
 app.use(express.json());
+
+mongoose.connect('mongodb://127.0.0.1:27017/residency', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(() => console.log('MongoDB connected'))
+  .catch(err => console.error('MongoDB error:', err));
+
+app.use('/api/auth', authRoutes);
+
 
 // Ensure uploads/ folder exists
 const uploadDir = path.join(__dirname, 'uploads');

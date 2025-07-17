@@ -1043,7 +1043,7 @@ if (!alreadyExists) {
         marginTop: '6px',
         overflow: 'hidden',
         boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)'
-      }}>
+      }}>a
         <div style={{
 
 width: `${Math.min((getTotalCoveredDays(physicalPresenceRanges, rdd) / 365) * 100, 100)}%`,
