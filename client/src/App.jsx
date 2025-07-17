@@ -11,6 +11,8 @@ import ResidencyDocsChecklist from './ResidencyDocsChecklist';
 import TaxDocsChecklist from './TaxDocsChecklist';
 import FileUploadArea from './FileUploadArea';
 import StatusPage from './StatusPage';
+import LoginPage from './LoginPage';
+import SignupPage from './SignupPage';
 
 
 const keywordMappings = {
@@ -163,6 +165,13 @@ function App() {
 
   const navigate = useNavigate();
 
+  const [token, setToken] = useState(localStorage.getItem('token') || '');
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setToken('');
+  };
+
   const [status, setStatus] = useState(null);
   const [residencyType, setResidencyType] = useState('');
   const [quarter, setQuarter] = useState('');
@@ -282,7 +291,10 @@ function App() {
     try {
       const response = await fetch('http://localhost:3000/api/submit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(formData),
       });
 
@@ -314,6 +326,7 @@ function App() {
     try {
       const uploadRes = await fetch('http://localhost:3000/api/upload', {
         method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
   
@@ -325,7 +338,10 @@ function App() {
       
       const analyzeRes = await fetch('http://localhost:3000/api/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ path: uploadData.path }),
       });
   
@@ -584,7 +600,10 @@ if (!alreadyExists) {
     try {
       const res = await fetch('http://localhost:3000/api/export', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ emailText })
       });
       const blob = await res.blob();
@@ -1230,22 +1249,27 @@ backgroundColor: '#154734',
   
   return (
     <div className="App min-h-screen bg-[#121212] text-white font-sans">
-      <Navbar />
+      <Navbar token={token} onLogout={handleLogout} />
       <Routes>
         <Route
           path="/"
           element={
-            <HomePage
-              status={status}
-              quizCompleted={quizCompleted}
-              residencyType={residencyType}
-              quizAnswers={quizAnswers}
-              setResidencyType={setResidencyType}
-              setQuizAnswers={setQuizAnswers}
-              setQuizCompleted={setQuizCompleted}
-              renderChecklistAndUpload={renderChecklistAndUpload}
-            />
+            token ? (
+              <HomePage
+                status={status}
+                quizCompleted={quizCompleted}
+                residencyType={residencyType}
+                quizAnswers={quizAnswers}
+                setResidencyType={setResidencyType}
+                setQuizAnswers={setQuizAnswers}
+                setQuizCompleted={setQuizCompleted}
+                renderChecklistAndUpload={renderChecklistAndUpload}
+              />
+            ) : (
+              <SignupPage setToken={setToken} />
+            ) 
           }
+
         />
         <Route path="/quiz" element={
     <Quiz
@@ -1262,7 +1286,9 @@ backgroundColor: '#154734',
           element={<QuizReviewPage quizAnswers={quizAnswers} setQuizAnswers={setQuizAnswers} />} />
         <Route
           path="/status"
-          element={<StatusPage residencyType={residencyType} />} />  
+          element={<StatusPage residencyType={residencyType} />} />
+        <Route path="/login" element={<LoginPage setToken={setToken} />} />
+        <Route path="/signup" element={<SignupPage setToken={setToken} />} />
       </Routes>
     </div>
   );

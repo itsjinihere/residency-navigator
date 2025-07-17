@@ -8,9 +8,10 @@ const Tesseract = require('tesseract.js');
 const { PDFDocument, StandardFonts } = require('pdf-lib');
 const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth'); // <- new route
+const requireAuth = require('./middleware/authMiddleware');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
@@ -52,7 +53,7 @@ app.get('/api/status', (req, res) => {
   res.json({ message: 'Backend is working', timestamp: new Date().toISOString() });
 });
 
-app.post('/api/submit', (req, res) => {
+app.post('/api/submit', requireAuth, (req, res) => {
   const { residencyType, quarter, year } = req.body;
   console.log('Received submission:', { residencyType, quarter, year });
 
@@ -74,7 +75,7 @@ app.post('/api/submit', (req, res) => {
 });
 
 // Upload a file
-app.post('/api/upload', upload.single('file'), (req, res) => {
+app.post('/api/upload', requireAuth, upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'No file uploaded.' });
   }
@@ -90,7 +91,7 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 });
 
 // Analyze uploaded file (PDF or image)
-app.post('/api/analyze', async (req, res) => {
+app.post('/api/analyze', requireAuth, async (req, res) => {
   const { path: filePath } = req.body;
   if (!filePath) return res.status(400).json({ message: 'No file path provided' });
 
@@ -167,7 +168,7 @@ app.post('/api/analyze', async (req, res) => {
 });
 
 // Merge all uploaded documents into a single PDF with a cover email
-app.post('/api/export', async (req, res) => {
+app.post('/api/export', requireAuth, async (req, res) => {
   const { emailText = '' } = req.body;
   const uploadsDir = path.join(__dirname, 'uploads');
 
