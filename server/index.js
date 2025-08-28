@@ -277,7 +277,7 @@ app.post('/api/export', async (req, res) => {
 });
 
 // ------------------ Serve React build in production ------------------
-const clientBuildPath = path.join(__dirname, "../client/dist");
+const clientBuildPath = path.join(__dirname, "client-dist");
 if (fs.existsSync(clientBuildPath)) {
   app.use(express.static(clientBuildPath));
 
