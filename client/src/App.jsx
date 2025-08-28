@@ -244,7 +244,13 @@ function App() {
   const [currentFilePath, setCurrentFilePath] = useState('');
 
   const generateEmailText = () => {
-    if (residencyType !== 'independent' && residencyType !== 'military') return '';
+    if (
+      residencyType !== 'independent' &&
+      residencyType !== 'military' &&
+      residencyType !== 'above19dependent-ca'
+    )
+      return '';
+    
     const fullName = quizAnswers.fullName || `${quizAnswers.firstName || ''} ${quizAnswers.lastName || ''}`.trim();
 
     if (residencyType === 'military') {
@@ -284,24 +290,42 @@ function App() {
     const rddYear = rdd ? rdd.getFullYear() : 0;
     const taxYears = rddYear ? `${rddYear - 2}, ${rddYear - 1} and ${rddYear}` : '';
 
+    if (residencyType === 'independent') {
+      return (
+        `Dear Cal Poly Admissions Office,\n\n` +
+        `My name is ${fullName}, and I am submitting my petition for reclassification to California resident status for ${quarter} ${year}. ` +
+        `I am writing to respectfully request in-state tuition classification on the basis of having met all three required criteria:\n\n` +
+        `1. Intent to remain in California\n2. Financial independence\n3. Physical presence in California\n\n` +
+        `Physical Presence in California:\n\n` +
+        `I have lived continuously in California since ${presenceStart}, and I have remained physically present in the state for more than one year prior to the Residence Determination Date of ${formattedRDD}.\n\n` +
+        `Intent to Remain in California:\n\n` +
+        `To satisfy the intent requirement, I have provided documentation from both List A and List B, as required:\n\n` +
+        `${docList}\n\n` +
+        `These documents demonstrate my long-term presence and ties to the state of California.\n\n` +
+        `Financial Independence:\n\n` +
+        `I meet the requirements for financial independence under Title 5 §41905.5:\n\n` +
+        `I have not been claimed as a dependent by my parents since 2022\n` +
+        `I have not received more than $750 in financial assistance from them in any calendar year since 2022\n` +
+        `I have not lived in their home for more than six weeks in any calendar year since 2022\n\n` +
+        `I have uploaded Page 1 of my parents’ federal tax returns for ${taxYears}.\n\n` +
+        `Thank you very much for your time and consideration. Please feel free to contact me if any additional documentation or clarification is needed.\n\n` +
+        `Warm regards,\n\n${fullName}`
+      );
+    }
+
+    const priorYear = rddYear ? `${rddYear - 1}` : '';
+
     return (
       `Dear Cal Poly Admissions Office,\n\n` +
-      `My name is ${fullName}, and I am submitting my petition for reclassification to California resident status for ${quarter} ${year}. ` +
-      `I am writing to respectfully request in-state tuition classification on the basis of having met all three required criteria:\n\n` +
-      `1. Intent to remain in California\n2. Financial independence\n3. Physical presence in California\n\n` +
+      `My name is ${fullName}, and I am requesting resident classification for ${quarter} ${year} as a dependent of my California-resident parent(s). ` +
+      `I have included their residency documents along with proof of my physical presence in California.\n\n` +
       `Physical Presence in California:\n\n` +
-      `I have lived continuously in California since ${presenceStart}, and I have remained physically present in the state for more than one year prior to the Residence Determination Date of ${formattedRDD}.\n\n` +
-      `Intent to Remain in California:\n\n` +
-      `To satisfy the intent requirement, I have provided documentation from both List A and List B, as required:\n\n` +
+      `I have lived in California since ${presenceStart} and remained in the state for over a year prior to the Residence Determination Date of ${formattedRDD}.\n\n` +
+      `Parent Residency Documentation:\n\n` +
       `${docList}\n\n` +
-      `These documents demonstrate my long-term presence and ties to the state of California.\n\n` +
-      `Financial Independence:\n\n` +
-      `I meet the requirements for financial independence under Title 5 §41905.5:\n\n` +
-      `I have not been claimed as a dependent by my parents since 2022\n` +
-      `I have not received more than $750 in financial assistance from them in any calendar year since 2022\n` +
-      `I have not lived in their home for more than six weeks in any calendar year since 2022\n\n` +
-      `I have uploaded Page 1 of my parents’ federal tax returns for ${taxYears}.\n\n` +
-      `Thank you very much for your time and consideration. Please feel free to contact me if any additional documentation or clarification is needed.\n\n` +
+      `I have also uploaded Page 1 of my parents’ federal tax return for ${priorYear}.\n\n` +
+      `Thank you very much for your time and consideration. Please let me know if any additional documentation is required.\n\n` +
+      
       `Warm regards,\n\n${fullName}`
     );
   };
@@ -476,10 +500,20 @@ if (!alreadyExists) {
     if (documentTypes.isTaxReturn && residencyType === 'independent') {
       const petitionYear = Number(year);
       const expectedYears = [petitionYear - 1, petitionYear - 2, petitionYear - 3];
-      const validYears = (analysisInfo?.taxYears || []).filter(y => expectedYears.includes(Number(y)));
+      const validYears = (analysisInfo?.taxYears || []).filter((y) => expectedYears.includes(Number(y)));
     
       if (validYears.length > 0) {
-        setFinancialDocs(prev => [...new Set([...prev, ...validYears])]);
+        setFinancialDocs((prev) => [...new Set([...prev, ...validYears])]);
+      }
+    }
+
+    if (documentTypes.isTaxReturn && residencyType === 'above19dependent-ca') {
+      const petitionYear = Number(year);
+      const requiredYear = petitionYear - 1;
+      const validYears = (analysisInfo?.taxYears || []).filter((y) => Number(y) === requiredYear);
+      const yearToAdd = currentSelectedDate || validYears[0];
+      if (yearToAdd && Number(yearToAdd) === requiredYear) {
+        setFinancialDocs((prev) => [...new Set([...prev, yearToAdd])]);
       }
     }
      
@@ -709,9 +743,17 @@ if (!alreadyExists) {
   );
   
   const residencyDocTarget = isMilitaryStudent(residencyType) ? 1 : 3;
-  const residencyProgress = Math.min(Math.round((completedDocuments.length / residencyDocTarget) * 100), 100);
-        const taxProgress = Math.min(Math.round((financialDocs.length / 3) * 100), 100);
-      
+  const residencyProgress = Math.min(
+    Math.round((completedDocuments.length / residencyDocTarget) * 100),
+    100
+  );
+
+  const requiredTaxDocs = residencyType === 'above19dependent-ca' ? 1 : 3;
+  const taxProgress = Math.min(
+    Math.round((financialDocs.length / requiredTaxDocs) * 100),
+    100
+  );
+  
   
     return (
       <div className="py-6">
@@ -947,7 +989,7 @@ if (!alreadyExists) {
             {/* Mini progress bar for tax docs */}
     <div style={{ marginBottom: '1.5rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#154734' }}>
-        <span>{financialDocs.length}/3 tax returns</span>
+      <span>{financialDocs.length}/{requiredTaxDocs} tax return{requiredTaxDocs > 1 ? 's' : ''}</span>
         <span>{taxProgress}% complete</span>
       </div>
       <div style={{
@@ -1009,8 +1051,8 @@ if (!alreadyExists) {
     ← Back
   </button>
 
-  {/* Only show next button if 3 tax docs uploaded */}
-  {financialDocs.length >= 3 && (
+  {/* Only show next button if required tax docs uploaded */}
+  {financialDocs.length >= requiredTaxDocs && (
     <button
       onClick={() => setChecklistStep(4)}
       style={{
@@ -1112,21 +1154,25 @@ if (!alreadyExists) {
       <span>{getTotalCoveredDays(physicalPresenceRanges, rdd)} / 365 days covered</span>
       <span>{Math.min(Math.round((getTotalCoveredDays(physicalPresenceRanges, rdd) / 365) * 100), 100)}% complete</span>
       </div>
-      <div style={{
-        height: '12px',
-        backgroundColor: '#e0e0e0',
-        borderRadius: '6px',
-        marginTop: '6px',
-        overflow: 'hidden',
-        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)'
-      }}>a
-        <div style={{
+      <div
+        style={{
+          height: '12px',
+          backgroundColor: '#e0e0e0',
+          borderRadius: '6px',
+          marginTop: '6px',
+          overflow: 'hidden',
+          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)'
+        }}
+      >
+        <div
+          style={{
+            width: `${Math.min((getTotalCoveredDays(physicalPresenceRanges, rdd) / 365) * 100, 100)}%`,
+            backgroundColor: '#154734',
+            height: '100%',
+            transition: 'width 0.5s ease-in-out'
+          }}
+        />
 
-width: `${Math.min((getTotalCoveredDays(physicalPresenceRanges, rdd) / 365) * 100, 100)}%`,
-backgroundColor: '#154734',
-          height: '100%',
-          transition: 'width 0.5s ease-in-out'
-        }} />
       </div>
     </div>
 

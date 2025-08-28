@@ -64,9 +64,13 @@ const residencyRequirements = {
   },
 };
 
-const getRequiredTaxYears = (petitionYear) => {
+const getRequiredTaxYears = (petitionYear, residencyType) => {
   if (!petitionYear) return [];
   const y = parseInt(petitionYear);
+  const cleaned = residencyType?.replace(/-/g, '').toLowerCase();
+  if (cleaned === 'above19dependentca') {
+    return [String(y - 1)];
+  }
   return [y - 3, y - 2, y - 1].map(String);
 };
 
@@ -100,7 +104,9 @@ const Checklist = ({
   const { listA, listB } = requirements;
   const completedListA = listA.filter((item) => completedItems.includes(item));
   const completedListB = listB.filter((item) => completedItems.includes(item));
-  const requiredTaxYears = petitionYear ? getRequiredTaxYears(petitionYear) : [];
+  const requiredTaxYears = petitionYear
+  ? getRequiredTaxYears(petitionYear, residencyType)
+  : [];
   const completedTaxYears = petitionYear
     ? requiredTaxYears.filter((year) => financialDocs.includes(year))
     : [];
@@ -112,10 +118,13 @@ const Checklist = ({
     ? completedListA.length >= 1 // military needs only 1 List A
     : hasListARequirement && totalResidencyDocs >= 3; // all others need 3 total
 
+  const requiresTaxDocs =
+    cleanedResidencyType === 'independent' ||
+    cleanedResidencyType === 'above19dependentca';  
+
 
   const financialDocsComplete =
-    cleanedResidencyType !== 'independent' ||
-    completedTaxYears.length === requiredTaxYears.length;
+  !requiresTaxDocs || completedTaxYears.length === requiredTaxYears.length;
 
     const checklistComplete =
     (showOnlyTaxDocs && financialDocsComplete) ||
@@ -129,7 +138,7 @@ const Checklist = ({
 
   // Progress logic adapted for step-by-step display
   const requiredResidencyDocs = 3;
-  const requiredTaxDocs = 3;
+  const requiredTaxDocs = cleanedResidencyType === 'above19dependentca' ? 1 : 3;
   const residencyDocsCounted = cleanedResidencyType === 'military'
   ? Math.min(completedListA.length, 1)
   : Math.min(totalResidencyDocs, requiredResidencyDocs);

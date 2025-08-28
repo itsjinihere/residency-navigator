@@ -10,6 +10,7 @@ const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth'); // <- new route
 const requireAuth = require('./middleware/authMiddleware');
 
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -168,70 +169,98 @@ app.post('/api/analyze', requireAuth, async (req, res) => {
 });
 
 // Merge all uploaded documents into a single PDF with a cover email
-app.post('/api/export', requireAuth, async (req, res) => {
+app.post('/api/export', async (req, res) => {
   const { emailText = '' } = req.body;
   const uploadsDir = path.join(__dirname, 'uploads');
 
   try {
     const pdfDoc = await PDFDocument.create();
-
-    // Add email text as first page
-    const page = pdfDoc.addPage();
-    const { width, height } = page.getSize();
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+    // Add email cover page
+    let page = pdfDoc.addPage();
+    const { width, height } = page.getSize();
     const fontSize = 12;
     const lineHeight = fontSize + 4;
-    const maxWidth = width - 100; // 50 padding on each side
-
-    const lines = emailText.split('\n');
+    const maxWidth = width - 100;
     let y = height - 50;
 
-    lines.forEach(line => {
+    const lines = emailText.split('\n');
+    for (const line of lines) {
       const words = line.split(' ');
       let currentLine = '';
-      words.forEach(word => {
+
+      for (const word of words) {
         const testLine = currentLine + word + ' ';
         const textWidth = font.widthOfTextAtSize(testLine, fontSize);
-
         if (textWidth > maxWidth) {
           page.drawText(currentLine, { x: 50, y, size: fontSize, font });
           currentLine = word + ' ';
           y -= lineHeight;
-
-          if (y < 50) { // Create new page if text exceeds page height
-            y = height - 50;
+          if (y < 50) {
             page = pdfDoc.addPage();
+            y = height - 50;
           }
         } else {
           currentLine = testLine;
         }
-      });
+      }
 
       if (currentLine.trim()) {
         page.drawText(currentLine.trim(), { x: 50, y, size: fontSize, font });
         y -= lineHeight;
         if (y < 50) {
-          y = height - 50;
           page = pdfDoc.addPage();
+          y = height - 50;
         }
       }
-    });
+    }
 
-    // Append all uploaded documents
+    // Append uploaded files
     const files = fs.readdirSync(uploadsDir).map(f => path.join(uploadsDir, f));
+    console.log('🧩 Processing uploaded files:', files);
 
     for (const filePath of files) {
       const ext = path.extname(filePath).toLowerCase();
+      const stats = fs.statSync(filePath);
+      if (stats.size === 0) continue;
+
       const buffer = fs.readFileSync(filePath);
 
       if (ext === '.pdf') {
-        const donor = await PDFDocument.load(buffer);
-        const copied = await pdfDoc.copyPages(donor, donor.getPageIndices());
-        copied.forEach(p => pdfDoc.addPage(p));
+        try {
+          const donor = await PDFDocument.load(buffer, { ignoreEncryption: true });
+          const copied = await pdfDoc.copyPages(donor, donor.getPageIndices());
+          copied.forEach(p => pdfDoc.addPage(p));
+        } catch (err) {
+          console.warn('❌ Could not load PDF:', filePath, '→ Falling back to image:', err.message);
+
+          // ✅ Fallback: convert PDF to PNGs and embed
+          try {
+            const { pdfToPng } = await import('pdf-to-img');
+            const images = await pdfToPng(filePath);
+            for (const imgData of images) {
+              const imgBuffer = fs.readFileSync(imgData.path);
+              const image = await pdfDoc.embedPng(imgBuffer);
+              const imgPage = pdfDoc.addPage([image.width, image.height]);
+              imgPage.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
+            }
+          } catch (imgErr) {
+            console.warn('⚠️ Fallback to image failed:', imgErr.message);
+            continue;
+          }
+        }
       } else if (['.png', '.jpg', '.jpeg'].includes(ext)) {
-        const img = ext === '.png' ? await pdfDoc.embedPng(buffer) : await pdfDoc.embedJpg(buffer);
-        const imgPage = pdfDoc.addPage([img.width, img.height]);
-        imgPage.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+        try {
+          const image = ext === '.png'
+            ? await pdfDoc.embedPng(buffer)
+            : await pdfDoc.embedJpg(buffer);
+          const imgPage = pdfDoc.addPage([image.width, image.height]);
+          imgPage.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
+        } catch (err) {
+          console.warn('⚠️ Image embed failed:', filePath, err.message);
+          continue;
+        }
       }
     }
 
@@ -240,10 +269,16 @@ app.post('/api/export', requireAuth, async (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename="residency_packet.pdf"');
     return res.send(Buffer.from(pdfBytes));
   } catch (err) {
-    console.error('PDF export error:', err);
+    console.error('❌ PDF export error:', err.message);
     return res.status(500).json({ message: 'Error creating PDF packet' });
   }
 });
+
+
+
+
+
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
