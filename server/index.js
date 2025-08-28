@@ -17,11 +17,13 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-mongoose.connect('mongodb://127.0.0.1:27017/residency', {
+mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
-  useUnifiedTopology: true
+  useUnifiedTopology: true,
 }).then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB error:', err));
+
+//MONGO_URI=mongodb://127.0.0.1:27017/residency npm start
 
 app.use('/api/auth', authRoutes);
 
@@ -273,6 +275,17 @@ app.post('/api/export', async (req, res) => {
     return res.status(500).json({ message: 'Error creating PDF packet' });
   }
 });
+
+// ------------------ Serve React build in production ------------------
+const clientBuildPath = path.join(__dirname, "../client/dist");
+if (fs.existsSync(clientBuildPath)) {
+  app.use(express.static(clientBuildPath));
+
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(clientBuildPath, "index.html"));
+  });
+}
+
 
 
 
