@@ -48,9 +48,9 @@ const upload = multer({ storage });
 // Routes
 app.get('/ping', (req, res) => res.send('pong'));
 
-app.get('/', (req, res) => {
-  res.send('Welcome to Residency Navigator backend!');
-});
+//app.get('/', (req, res) => {
+  //res.send('Welcome to Residency Navigator backend!');
+//});
 
 app.get('/api/status', (req, res) => {
   res.json({ message: 'Backend is working', timestamp: new Date().toISOString() });
